@@ -30,24 +30,43 @@ This document organizes our SEO strategy into actionable Agile "User Stories" an
 
 ---
 
+## ⏳ WAITING / BLOCKED (Pending External Action)
+
+**Story 4: As a brand, I want my logo to appear next to my link in Google search results to increase click-through rate.**
+- [x] Create and upload new Favicon to Squarespace
+- [ ] Wait for Googlebot to re-crawl the site
+- [ ] Verify the new favicon is actively displaying in live Google search results
+
+---
+
 ## 🚶‍♂️ SPRINT 2: Building E-E-A-T & AI Optimization (Backlog)
 
-**Story 4: As an AI Engine (ChatGPT/Gemini), I need structured data to mathematically verify the business details and course offerings.**
+**Story 5: As an AI Engine (ChatGPT/Gemini), I need structured data to mathematically verify the business details and course offerings.**
 - [ ] Gather public phone number from owner
 - [ ] Gather public email from owner
 - [ ] Gather lesson price range from owner
 - [ ] Update the JSON-LD Schema code block in `sail2learn-seo-strategy.md` with the new data
 - [ ] Inject the Schema code into Squarespace via Website Tools > Code Injection > Header
 
-**Story 5: As an AI Engine, I need proof that the instructor is a verified expert so I can confidently recommend him.**
+**Story 6: As an AI Engine, I need proof that the instructor is a verified expert so I can confidently recommend him.**
 - [ ] Edit the Steve Bonham bio section on the website
 - [ ] Add outbound hyperlink from "ASA (American Sailing Association)" to `https://asa.com/`
 - [ ] Add outbound hyperlink from "US Sailing" to their official site
 - [ ] Ensure his credentials (former NCAA coach, 50+ years experience) are explicitly stated near his name
 
-**Story 6: As a user asking conversational questions to AI, I want direct answers about the sailing lessons.**
+**Story 7: As a user asking conversational questions to AI, I want direct answers about the sailing lessons.**
 - [ ] Draft 5-7 common questions (e.g., "Do I need experience?", "What boat do we use?", "Where do we launch?")
 - [ ] Add a dedicated FAQ section to the Class Info page with clear, factual answers
+
+**Story 8: As a business owner, I need to measure the success of my SEO efforts and track how users find my site.**
+- [ ] Connect Squarespace to Google Search Console (Analytics > Search Keywords)
+- [ ] Generate and submit XML Sitemap to Google Search Console
+- [ ] Create a Google Analytics 4 (GA4) property
+- [ ] Add GA4 Measurement ID to Squarespace (Settings > Advanced > External API Keys)
+
+**Story 9: As a visitor on the homepage, I want a clear, immediate way to contact the instructor or book a lesson (Conversion Rate Optimization).**
+- [ ] Add a highly visible "Book a Lesson" or "Contact Steve" button "Above the Fold" on the homepage
+- [ ] Ensure the phone number or email is clickable (a `mailto:` or `tel:` link) on mobile devices
 
 ---
 
