@@ -27,7 +27,19 @@ This guide provides the exact click-by-click instructions for executing the high
 
 ---
 
-### Task 2: Fix the Homepage H1 & Meta Description (in Squarespace)
+### Task 2: Conversion Rate Optimization (CRO) & Spam Prevention
+*Getting traffic doesn't matter if users can't book. This prevents spam while driving revenue.*
+
+**Step-by-Step:**
+1. **Google Voice:** Go to [voice.google.com](https://voice.google.com) and sign up for a free local number. Set it to forward to the owner's cell phone.
+2. **Add a Button:** Log into Squarespace, edit the Homepage, and add a **Button** block at the very top (Above the Fold). Set the text to "Book Your Sail" and link it to a new `/contact` page or scroll anchor.
+3. **Contact Form:** On your contact page, add a Squarespace **Form** block. Include fields for Name, Email, Requested Dates, and Experience Level.
+4. **Remove Plain Text Email:** Delete the plain text email address from the site to prevent bot scraping.
+5. **Display Phone Number:** Below the new form, type: *For immediate questions, call or text: [Insert Google Voice Number]*.
+
+---
+
+### Task 3: Fix the Homepage H1 & Meta Description (in Squarespace)
 *This tells Google exactly what the website is about so it ranks for the right keywords.*
 
 **Step-by-Step for the H1 Tag:**
@@ -48,7 +60,7 @@ This guide provides the exact click-by-click instructions for executing the high
 
 ---
 
-### Task 3: Image Compression & Alt Text
+### Task 4: Image Compression & Alt Text
 *This fixes performance penalties and helps visually impaired users and AI bots understand your photos.*
 
 **Step-by-Step for Compression:**
@@ -67,7 +79,17 @@ This guide provides the exact click-by-click instructions for executing the high
 
 ## TIER 2: MODERATE IMPACT (Execute Second)
 
-### Task 4: Build the "Entity" Profile for AIO (AI Optimization)
+### Task 5: Tracking & Measurement (GSC & GA4)
+*Measure your success and see what keywords are driving traffic.*
+
+**Step-by-Step:**
+1. **Google Search Console (GSC):** In the Squarespace Home Menu, go to **Analytics > Search Keywords**. Click "Connect" and log in with your Google account. This automatically verifies the site and submits the sitemap.
+2. **Google Analytics (GA4):** Go to [analytics.google.com](https://analytics.google.com) and create a new property for Sail2Learn. Copy the "Measurement ID" (starts with `G-`).
+3. **Add to Squarespace:** In the Squarespace menu, go to **Settings > Advanced > External API Keys** (or **Settings > Developer Tools > External API Keys**). Paste the Measurement ID into the Google Analytics box and save.
+
+---
+
+### Task 6: Build the "Entity" Profile for AIO (AI Optimization)
 *This proves to ChatGPT and Google that Steve is a verified expert.*
 
 **Step-by-Step:**
@@ -77,15 +99,15 @@ This guide provides the exact click-by-click instructions for executing the high
 4. Paste the URL to the official ASA website (`https://asa.com/`). Turn on "Open in New Window".
 5. Do the same for "US Sailing" if mentioned.
 6. Make sure his name is written clearly as "Captain Steve Bonham" or "Instructor Steve Bonham" near his credentials.
+7. **Add an FAQ:** On the Class Info page, add a text block with 5-7 common conversational questions (e.g., "Do I need experience?", "Where do we launch?") with direct factual answers.
 
 ---
 
-### Task 5: Inject Local Business Schema Markup
+### Task 7: Inject Local Business Schema Markup
 *This feeds exact data directly to Googlebot and AI crawlers.*
 
 **Step-by-Step:**
-1. Once you have the official public phone number, email, and price range, have your AI assistant (me!) generate the JSON-LD Schema code block.
-2. Copy that code block.
-3. In Squarespace, go to **Website** > **Pages** > scroll down to **Website Tools** > **Code Injection** (or **Settings > Advanced > Code Injection** depending on your Squarespace version).
-4. Paste the code into the **HEADER** box.
-5. Click **Save**.
+1. Once you have the official public phone number, email, and price range, copy the JSON-LD Schema code block from the `sail2learn-seo-strategy.md` file.
+2. In Squarespace, go to **Website** > **Pages** > scroll down to **Website Tools** > **Code Injection** (or **Settings > Advanced > Code Injection** depending on your Squarespace version).
+3. Paste the code into the **HEADER** box.
+4. Click **Save**.
