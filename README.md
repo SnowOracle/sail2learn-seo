@@ -25,6 +25,8 @@ Whether you are executing the immediate SEO fixes or planning a long-term archit
 ### 2. The Execution Playbooks
 * 📝 **[`sail2learn-execution-guide.md`](./sail2learn-execution-guide.md)**  
   *The Click-by-Click Manual.* A step-by-step UI checklist for executing the strategy directly inside the Squarespace dashboard and setting up the Google Business Profile.
+* 📋 **[`seo-stories-and-tasks.md`](./seo-stories-and-tasks.md)**  
+  *The Agile Backlog.* Breaks down the entire strategy into actionable "User Stories" and a prioritized task checklist (Sprint 1, Sprint 2, and Long-Term Growth).
 * 🤖 **[`squarespace-seo-workflow.md`](./squarespace-seo-workflow.md)**  
   *The AI Workflow Guide.* Explains how to work with an AI assistant within a closed ecosystem like Squarespace, including how to find and extract hidden backend SEO settings for AI review.
 
