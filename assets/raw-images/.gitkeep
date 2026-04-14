@@ -1,0 +1,1 @@
+# This file ensures the assets/raw-images directory is tracked by Git, even though the massive image files inside it are ignored.
