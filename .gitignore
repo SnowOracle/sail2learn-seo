@@ -1,0 +1,5 @@
+.venv/
+.idea/
+*.HEIC
+*.jpg
+*.png

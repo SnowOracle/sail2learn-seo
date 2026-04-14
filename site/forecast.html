@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sarasota Bay forecast | Sail2Learn</title>
+    <meta
+      name="description"
+      content="Live weather and wind forecast for the Sarasota Bay area — handy for planning sailing. Unofficial; always check NOAA and local conditions before going out."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="logo" href="index.html">Sail <span>to Learn</span></a>
+        <nav class="nav-desktop" aria-label="Primary">
+          <a href="index.html#learn">Learn</a>
+          <a href="index.html#instructor">Instructor</a>
+          <a href="index.html#classes">Classes</a>
+          <a href="index.html#gallery">Gallery</a>
+          <a href="index.html#testimonials">Reviews</a>
+          <a href="forecast.html" class="nav-active" aria-current="page">Sarasota forecast</a>
+          <a href="https://www.sail2learn.com/learning-materials" rel="noopener">Learning materials</a>
+          <a class="nav-cta" href="mailto:sbonham@georgiasouthern.edu">Book a lesson</a>
+        </nav>
+        <button
+          type="button"
+          class="menu-toggle"
+          aria-expanded="false"
+          aria-controls="mobile-nav"
+          aria-label="Open menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+      <nav id="mobile-nav" class="nav-mobile" aria-label="Mobile primary" hidden>
+        <a href="index.html#learn">Learn with us</a>
+        <a href="index.html#instructor">Meet your instructor</a>
+        <a href="index.html#classes">Class information</a>
+        <a href="index.html#gallery">Gallery</a>
+        <a href="index.html#testimonials">Testimonials</a>
+        <a href="forecast.html">Sarasota forecast</a>
+        <a href="https://www.sail2learn.com/learning-materials" rel="noopener">Learning materials</a>
+        <a href="mailto:sbonham@georgiasouthern.edu">Contact / Book</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="section section-alt forecast-hero">
+        <div class="section-inner">
+          <h1>Sarasota Bay area forecast</h1>
+          <p class="forecast-meta" id="forecast-updated">Loading location…</p>
+          <p class="forecast-disclaimer">
+            <strong>For planning only.</strong> This page uses computer weather and marine models (Open-Meteo), not an
+            official forecast. Before sailing, check
+            <a href="https://www.weather.gov/tbw/" rel="noopener noreferrer">NWS Tampa Bay</a>,
+            <a href="https://www.ndbc.noaa.gov/" rel="noopener noreferrer">NDBC buoys</a>, and local conditions on the
+            water.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-inner">
+          <div id="forecast-status" class="forecast-status" role="status" aria-live="polite" aria-busy="true">
+            Loading forecast…
+          </div>
+          <p id="forecast-error" class="forecast-error" hidden></p>
+          <div id="forecast-content" hidden></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div>
+          <h3>Learn</h3>
+          <a href="https://www.sail2learn.com/class-information" rel="noopener">Class information</a>
+          <a href="https://www.sail2learn.com/learning-materials" rel="noopener">Learning materials</a>
+          <a href="https://www.sail2learn.com/faq" rel="noopener">FAQ</a>
+        </div>
+        <div>
+          <h3>Explore</h3>
+          <a href="index.html">Home</a>
+          <a href="https://www.sail2learn.com/about" rel="noopener">About</a>
+          <a href="https://www.sail2learn.com/gallery" rel="noopener">Gallery</a>
+          <a href="forecast.html">Sarasota forecast</a>
+          <a href="index.html#testimonials">Testimonials</a>
+        </div>
+        <div>
+          <h3>Contact</h3>
+          <a href="mailto:sbonham@georgiasouthern.edu">sbonham@georgiasouthern.edu</a>
+          <a href="https://www.youtube.com/@sail2learn299" rel="noopener noreferrer">YouTube</a>
+        </div>
+      </div>
+      <p class="footer-bottom">
+        Static preview inspired by
+        <a href="https://www.sail2learn.com/" rel="noopener" style="display: inline; color: inherit">sail2learn.com</a> —
+        not affiliated; for local review only.
+      </p>
+    </footer>
+
+    <script src="main.js" defer></script>
+    <script src="forecast.js" defer></script>
+  </body>
+</html>
