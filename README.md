@@ -25,13 +25,13 @@ Whether you are executing the immediate SEO fixes or planning a long-term archit
 ### 2. The Execution Playbooks
 * 📝 **[`sail2learn-execution-guide.md`](./sail2learn-execution-guide.md)**  
   *The Click-by-Click Manual.* A step-by-step UI checklist for executing the strategy directly inside the Squarespace dashboard and setting up the Google Business Profile.
-* 📋 **[`seo-stories-and-tasks.md`](./seo-stories-and-tasks.md)**  
+* 📋 **[`sail2learn-stories-and-tasks.md`](./sail2learn-stories-and-tasks.md)**  
   *The Agile Backlog.* Breaks down the entire strategy into actionable "User Stories" and a prioritized task checklist (Sprint 1, Sprint 2, and Long-Term Growth).
 * 🤖 **[`squarespace-seo-workflow.md`](./squarespace-seo-workflow.md)**  
   *The AI Workflow Guide.* Explains how to work with an AI assistant within a closed ecosystem like Squarespace, including how to find and extract hidden backend SEO settings for AI review.
 
 ### 3. The Future Architecture
-* 🏗️ **[`squarespace-to-code-migration.md`](./squarespace-to-code-migration.md)**  
+* 🏗️ **[`migration-planning/squarespace-to-code-migration.md`](./migration-planning/squarespace-to-code-migration.md)**  
   *The 6-Month Horizon.* A strategic breakdown weighing the pros and cons of staying on a closed site builder vs. migrating to a "Code-First" (Astro/Next.js) architecture for unparalleled speed, long-term SEO dominance, and seamless AI integration.
 
 ---
