@@ -90,7 +90,7 @@
                 <ul style="text-align: left; font-size: 0.95rem; margin-top: 15px; padding-left: 20px;">
                     <li>Press <span class="key">Space</span> to <b>Tack</b>.</li>
                     <li>Avoid <b>Obstacles</b> (Rocks, Logs, Turtles, Work), <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
-                    <li>Catch <b>Stars</b> for a speed boost!</li>
+                    <li>Catch <b>Stars</b> and sail through dark <b>Wind Gusts</b> for a speed boost!</li>
                     <li>Watch the <b>Wind Compass</b>! If the wind shifts, you might get stuck "In Irons".</li>
                 </ul>
                 <p style="margin-top: 20px; font-weight: bold;">Click to Start</p>
@@ -135,6 +135,7 @@
             spin: 0,
             jump: 0, 
             slowTimer: 0,
+            puffTimer: 0,
             score: 0
         };
 
@@ -165,7 +166,7 @@
         function resetGame() {
             boat = {
                 x: 1000, y: 0, angle: -Math.PI / 4, tack: 1, 
-                color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, score: 0
+                color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, puffTimer: 0, score: 0
             };
             windDir = Math.PI / 2;
             targetWindDir = Math.PI / 2;
@@ -336,11 +337,12 @@
                     ctx.font = '26px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 14, 0, Math.PI*2);
-                    ctx.fill();
                     ctx.fillText(e.icon, 0, 2);
+                } else if (e.type === 'puff') {
+                    ctx.fillStyle = 'rgba(26, 54, 93, 0.15)'; // Darker water patch
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 50, 90, windDir, 0, Math.PI*2);
+                    ctx.fill();
                 } else if (e.type === 'star') {
                     ctx.fillStyle = '#f1c40f';
                     ctx.beginPath();
@@ -402,6 +404,10 @@
                 eff *= 0.3;
                 boat.slowTimer--;
             }
+            if (boat.puffTimer > 0) {
+                eff *= 1.6;
+                boat.puffTimer--;
+            }
 
             if (boat.jump > 0) {
                 eff *= 1.8; 
@@ -447,6 +453,9 @@
             }
 
             // Entity Spawning (Spawn just out of view above the camera)
+            if (Math.random() < 0.005) { // Puff (Wind Gust)
+                entities.push({ type: 'puff', x: camera.x + Math.random() * canvas.width, y: camera.y - 150, active: true });
+            }
             if (Math.random() < 0.015) { // Obstacle
                 let obstacleIcons = ['🪨', '🪵', '🌿', '🐢', '💻', '💼', '📁', '📱'];
                 let icon = obstacleIcons[Math.floor(Math.random() * obstacleIcons.length)];
@@ -477,6 +486,12 @@
 
             // Update Entities & Collisions
             for (let e of entities) {
+                if (e.type === 'puff' && e.active) {
+                    let windSpeed = 3.0; // Puffs move faster than boat
+                    e.x += Math.cos(windDir) * windSpeed;
+                    e.y += Math.sin(windDir) * windSpeed;
+                }
+                
                 if (e.type === 'otherboat' && e.active) {
                     if (frameCount - e.lastTackFrame > 240 && Math.random() < 0.02) {
                         e.tack *= -1;
@@ -508,23 +523,27 @@
                     let dx = e.x - boat.x;
                     let dy = e.y - boat.y;
                     let dist = Math.sqrt(dx*dx + dy*dy);
-                    let collisionDist = e.type === 'otherboat' ? 30 : 22;
+                    let collisionDist = e.type === 'otherboat' ? 30 : (e.type === 'puff' ? 50 : 22);
                     
                     if (dist < collisionDist) {
-                        e.active = false;
-                        if (e.type === 'star') {
-                            boat.jump = Math.PI; 
-                            boat.spin = Math.PI * 2; 
-                            let colors = ['#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#ffffff'];
-                            boat.color = colors[Math.floor(Math.random() * colors.length)];
-                            boat.score += 50;
-                        } else if (e.type === 'obstacle') {
-                            boat.slowTimer = 90; 
-                            boat.score = Math.max(0, boat.score - 20);
-                        } else if (e.type === 'otherboat') {
-                            boat.slowTimer = 120; 
-                            boat.score = Math.max(0, boat.score - 40);
-                            boat.spin = Math.PI; 
+                        if (e.type === 'puff') {
+                            boat.puffTimer = 5; // Applies puff boost while inside
+                        } else {
+                            e.active = false;
+                            if (e.type === 'star') {
+                                boat.jump = Math.PI; 
+                                boat.spin = Math.PI * 2; 
+                                let colors = ['#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#ffffff'];
+                                boat.color = colors[Math.floor(Math.random() * colors.length)];
+                                boat.score += 50;
+                            } else if (e.type === 'obstacle') {
+                                boat.slowTimer = 90; 
+                                boat.score = Math.max(0, boat.score - 20);
+                            } else if (e.type === 'otherboat') {
+                                boat.slowTimer = 120; 
+                                boat.score = Math.max(0, boat.score - 40);
+                                boat.spin = Math.PI; 
+                            }
                         }
                     }
                 }
