@@ -89,7 +89,7 @@
                 <p>Sail up the coast of Sarasota!</p>
                 <ul style="text-align: left; font-size: 0.95rem; margin-top: 15px; padding-left: 20px;">
                     <li>Press <span class="key">Space</span> to <b>Tack</b>.</li>
-                    <li>Avoid <b>Obstacles</b> (Crab Pots, Seals, Work), <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
+                    <li>Avoid <b>Obstacles</b> (Rocks, Logs, Turtles, Work), <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
                     <li>Catch <b>Stars</b> for a speed boost!</li>
                     <li>Watch the <b>Wind Compass</b>! If the wind shifts, you might get stuck "In Irons".</li>
                 </ul>
@@ -448,7 +448,7 @@
 
             // Entity Spawning (Spawn just out of view above the camera)
             if (Math.random() < 0.015) { // Obstacle
-                let obstacleIcons = ['🦀', '🦭', '📁', '🛟', '🐊', '💼'];
+                let obstacleIcons = ['🪨', '🪵', '🌿', '🐢', '💻', '💼', '📁', '📱'];
                 let icon = obstacleIcons[Math.floor(Math.random() * obstacleIcons.length)];
                 entities.push({ type: 'obstacle', icon: icon, x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
             }
