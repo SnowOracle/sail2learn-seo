@@ -33,11 +33,6 @@
             width: 100%;
             height: 100%;
         }
-        .sandbar {
-            display: none; /* Removed sandbars */
-        }
-        .sandbar.left { left: 0; top: 0; bottom: 0; width: 0; }
-        .sandbar.right { right: 0; top: 0; bottom: 0; width: 0; }
         
         #ui-layer {
             position: absolute;
@@ -87,16 +82,14 @@
 <body>
 
     <div id="game-container">
-        <div class="sandbar left"></div>
-        <div class="sandbar right"></div>
-        <canvas id="canvas" width="800" height="800"></canvas>
+        <canvas id="canvas"></canvas>
         <div id="ui-layer">
             <div id="start-screen" class="message">
                 <h1>Tack the Bay</h1>
-                <p>Sail as far as you can!</p>
+                <p>Sail up the coast of Sarasota!</p>
                 <ul style="text-align: left; font-size: 0.95rem; margin-top: 15px; padding-left: 20px;">
                     <li>Press <span class="key">Space</span> to <b>Tack</b>.</li>
-                    <li>Avoid <b>Crab Pots</b> and <b>Other Boats</b> (they slow you down).</li>
+                    <li>Avoid <b>Crab Pots</b>, <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
                     <li>Catch <b>Stars</b> for a speed boost!</li>
                     <li>Watch the <b>Wind Compass</b>! If the wind shifts, you might get stuck "In Irons".</li>
                 </ul>
@@ -118,15 +111,24 @@
         const startScreen = document.getElementById('start-screen');
         const container = document.getElementById('game-container');
 
+        // Responsive Canvas
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
         let gameState = 'start'; 
         let frameCount = 0;
 
         let windDir = Math.PI / 2; // Wind blowing straight down
         let targetWindDir = Math.PI / 2;
 
+        let camera = { x: 0, y: 0 };
         let boat = {
-            x: 200,
-            y: 450,
+            x: 1000,
+            y: 0,
             angle: -Math.PI / 4,
             tack: 1, // 1 for right tack, -1 for left tack
             color: '#ffffff',
@@ -152,9 +154,15 @@
             return Math.PI - diff; 
         }
 
+        // Procedural jagged shoreline
+        function getShoreline(y, isLeft) {
+            let noise = Math.sin(y * 0.005) * 80 + Math.sin(y * 0.02) * 30 + Math.cos(y * 0.001) * 150;
+            return isLeft ? 300 + noise : 1700 + noise; // The bay is roughly 1400px wide
+        }
+
         function resetGame() {
             boat = {
-                x: 400, y: 600, angle: -Math.PI / 4, tack: 1, 
+                x: 1000, y: 0, angle: -Math.PI / 4, tack: 1, 
                 color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, score: 0
             };
             windDir = Math.PI / 2;
@@ -165,15 +173,45 @@
             startScreen.style.display = 'none';
         }
 
+        function drawLand() {
+            ctx.fillStyle = '#e6c280'; // sand
+            ctx.strokeStyle = '#c2a15f'; // darker shore edge
+            ctx.lineWidth = 6;
+            
+            let startY = camera.y - 100;
+            let endY = camera.y + canvas.height + 100;
+            let step = 40;
+            
+            // Left landmass
+            ctx.beginPath();
+            ctx.moveTo(camera.x - 200, startY);
+            for(let y = startY; y <= endY + step; y += step) {
+                ctx.lineTo(getShoreline(y, true), y);
+            }
+            ctx.lineTo(camera.x - 200, endY + step);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Right landmass
+            ctx.beginPath();
+            ctx.moveTo(camera.x + canvas.width + 200, startY);
+            for(let y = startY; y <= endY + step; y += step) {
+                ctx.lineTo(getShoreline(y, false), y);
+            }
+            ctx.lineTo(camera.x + canvas.width + 200, endY + step);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+
         function drawBoat() {
             ctx.save();
             ctx.translate(boat.x, boat.y);
             
             let scale = 1;
-            // Handle Jump effect
             if (boat.jump > 0) {
                 scale = 1 + Math.sin(boat.jump) * 0.5;
-                // Draw shadow
                 ctx.fillStyle = 'rgba(0,0,0,0.15)';
                 ctx.beginPath();
                 ctx.ellipse(0, 20 + Math.sin(boat.jump)*15, 10, 20, boat.angle, 0, Math.PI*2);
@@ -181,10 +219,9 @@
             }
             ctx.scale(scale, scale);
             
-            // Handle Spin effect
             ctx.rotate(boat.angle + boat.spin);
             
-            // Draw Hull
+            // Hull
             ctx.fillStyle = boat.color;
             ctx.beginPath();
             ctx.ellipse(0, 0, 8, 25, 0, 0, Math.PI * 2);
@@ -193,17 +230,15 @@
             ctx.lineWidth = 1;
             ctx.stroke();
 
-            // Draw Sail
+            // Sail
             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
             ctx.beginPath();
             ctx.moveTo(0, -8);
             
             if (inIrons) {
-                // Sail luffs (flaps) when pointing into wind
                 let flap = Math.sin(Date.now() / 40) * 6;
                 ctx.quadraticCurveTo(flap, 5, 0, 18);
             } else {
-                // Sail bellows away from the wind
                 let relWind = getAngleDiff(windDir, boat.angle);
                 if (relWind > 0) {
                     ctx.quadraticCurveTo(-22, 5, 0, 18);
@@ -215,7 +250,6 @@
             ctx.fill();
             ctx.stroke();
             
-            // Blink red if slowed by crab pot
             if (boat.slowTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) {
                 ctx.fillStyle = 'rgba(231, 76, 60, 0.5)';
                 ctx.beginPath();
@@ -231,31 +265,33 @@
             ctx.lineWidth = 2;
             let time = Date.now() / 1000;
             
-            for(let i=0; i<12; i++) {
-                let speed = 80;
-                let offset = (time * speed + i * 200) % 1200;
-                let startX = 400 - Math.cos(windDir) * offset + ((i*173) % 800) - 400; 
-                let startY = 0 - Math.sin(windDir) * offset;
-                
-                let x = (startX % 800 + 800) % 800;
-                let y = (startY % 800 + 800) % 800;
-                
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-                let tox = x + Math.cos(windDir)*40;
-                let toy = y + Math.sin(windDir)*40;
-                ctx.lineTo(tox, toy);
-                
-                // Draw wind arrow head
-                let hx = tox - Math.cos(windDir-0.5)*10;
-                let hy = toy - Math.sin(windDir-0.5)*10;
-                ctx.lineTo(hx, hy);
-                ctx.moveTo(tox, toy);
-                let hx2 = tox - Math.cos(windDir+0.5)*10;
-                let hy2 = toy - Math.sin(windDir+0.5)*10;
-                ctx.lineTo(hx2, hy2);
-                
-                ctx.stroke();
+            let spacing = 150;
+            let startX = Math.floor(camera.x / spacing) * spacing;
+            let startY = Math.floor(camera.y / spacing) * spacing;
+            
+            for (let x = startX; x < camera.x + canvas.width + spacing; x += spacing) {
+                for (let y = startY; y < camera.y + canvas.height + spacing; y += spacing) {
+                    let offset = (time * 60 + (x * 11) + (y * 7)) % spacing;
+                    
+                    let wx = x + Math.cos(windDir) * offset;
+                    let wy = y + Math.sin(windDir) * offset;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(wx, wy);
+                    let tox = wx + Math.cos(windDir)*30;
+                    let toy = wy + Math.sin(windDir)*30;
+                    ctx.lineTo(tox, toy);
+                    
+                    let hx = tox - Math.cos(windDir-0.5)*8;
+                    let hy = toy - Math.sin(windDir-0.5)*8;
+                    ctx.lineTo(hx, hy);
+                    ctx.moveTo(tox, toy);
+                    let hx2 = tox - Math.cos(windDir+0.5)*8;
+                    let hy2 = toy - Math.sin(windDir+0.5)*8;
+                    ctx.lineTo(hx2, hy2);
+                    
+                    ctx.stroke();
+                }
             }
         }
 
@@ -271,7 +307,6 @@
             ctx.lineWidth = 3;
             ctx.stroke();
             
-            // Compass Needle (points towards wind)
             ctx.rotate(windDir);
             ctx.fillStyle = '#e74c3c';
             ctx.beginPath();
@@ -280,7 +315,6 @@
             ctx.lineTo(8, 5);
             ctx.fill();
             
-            // Text Label
             ctx.rotate(-windDir);
             ctx.fillStyle = '#1a365d';
             ctx.font = 'bold 11px sans-serif';
@@ -317,7 +351,6 @@
                     ctx.stroke();
                 } else if (e.type === 'otherboat') {
                     ctx.rotate(e.angle);
-                    // Draw Hull
                     ctx.fillStyle = e.color;
                     ctx.beginPath();
                     ctx.ellipse(0, 0, 8, 25, 0, 0, Math.PI * 2);
@@ -325,7 +358,7 @@
                     ctx.strokeStyle = '#333';
                     ctx.lineWidth = 1;
                     ctx.stroke();
-                    // Draw Sail
+                    
                     ctx.fillStyle = 'rgba(200, 200, 200, 0.8)';
                     ctx.beginPath();
                     ctx.moveTo(0, -8);
@@ -343,39 +376,31 @@
             if (gameState !== 'playing') return;
             frameCount++;
 
-            // Dynamic Wind: Shifts every 8 seconds (approx 480 frames)
             if (frameCount % 480 === 0) {
-                // Options: Down-Right, Straight Down, Down-Left
                 let options = [Math.PI / 4, Math.PI / 2, 3 * Math.PI / 4];
                 let currentIdx = options.indexOf(targetWindDir);
-                // Ensure it picks a NEW direction
                 let newOptions = options.filter((_, i) => i !== currentIdx);
                 targetWindDir = newOptions[Math.floor(Math.random() * newOptions.length)];
             }
-            // Smoothly rotate wind direction to target
             windDir += (targetWindDir - windDir) * 0.02;
 
-            // Update boat angle based on current Tack
             let targetBoatAngle = boat.tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
             boat.angle += getAngleDiff(targetBoatAngle, boat.angle) * 0.15;
 
-            // Calculate True Wind Angle (TWA) to determine speed
             let twa = getTWA(windDir, boat.angle);
             let eff = 1.0;
             inIrons = false;
             
-            if (twa < 0.5) { eff = 0.15; inIrons = true; } // In Irons (Too close to wind)
-            else if (twa < 0.9) eff = 1.0; // Close hauled
-            else if (twa < 1.8) eff = 1.6; // Beam reach (Fastest point of sail)
-            else eff = 1.1; // Broad reach
+            if (twa < 0.5) { eff = 0.15; inIrons = true; } 
+            else if (twa < 0.9) eff = 1.0; 
+            else if (twa < 1.8) eff = 1.6; 
+            else eff = 1.1; 
 
-            // Apply Crab Pot slow effect
             if (boat.slowTimer > 0) {
                 eff *= 0.3;
                 boat.slowTimer--;
             }
 
-            // Apply Star jump/boost effect
             if (boat.jump > 0) {
                 eff *= 1.8; 
                 boat.jump -= 0.04;
@@ -386,38 +411,54 @@
                 if (boat.spin < 0) boat.spin = 0;
             }
 
-            // Move Boat
-            let baseSpeed = 1.2; // Decreased overall speed as requested
+            let baseSpeed = 1.2; 
             let speed = baseSpeed * eff;
-            let moveX = Math.cos(boat.angle) * speed;
-            let moveY = Math.sin(boat.angle) * speed;
+            boat.x += Math.cos(boat.angle) * speed;
+            boat.y += Math.sin(boat.angle) * speed; // Boat actually moves in world coordinates now!
 
-            boat.x += moveX;
+            // Score is based on how far North (negative Y) you have sailed
+            boat.score = Math.max(boat.score, -boat.y * 0.1);
+
+            // Camera tracks the boat
+            camera.x = boat.x - canvas.width / 2;
+            camera.y = boat.y - canvas.height * 0.75; // Boat is positioned lower on the screen
+
+            // Shoreline Collision (Auto-Tack)
+            let leftEdge = getShoreline(boat.y, true) + 20;
+            let rightEdge = getShoreline(boat.y, false) - 20;
             
-            // Scroll the world down instead of moving boat up
-            let scrollY = -moveY; 
-            boat.score += scrollY * 0.2;
+            if (boat.x < leftEdge) {
+                boat.x = leftEdge;
+                boat.tack = 1; 
+                boat.slowTimer = 30; 
+            }
+            if (boat.x > rightEdge) {
+                boat.x = rightEdge;
+                boat.tack = -1; 
+                boat.slowTimer = 30;
+            }
 
-            // Entity Spawning (Endless Runner style)
+            // Entity Spawning (Spawn just out of view above the camera)
             if (Math.random() < 0.015) { // Crab pot
-                entities.push({ type: 'crabpot', x: 50 + Math.random() * (canvas.width - 100), y: -30, active: true });
+                entities.push({ type: 'crabpot', x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
             }
             if (Math.random() < 0.003) { // Star (Boon)
-                entities.push({ type: 'star', x: 50 + Math.random() * (canvas.width - 100), y: -30, active: true });
+                entities.push({ type: 'star', x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
             }
-            if (Math.random() < 0.0025) { // Other boat spawning at edges (reduced spawn rate)
+            if (Math.random() < 0.0025) { // Other boat spawning
                 let spawnLeft = Math.random() > 0.5;
-                let startX = spawnLeft ? -30 : canvas.width + 30;
+                // Spawn near the shoreline
+                let startX = spawnLeft ? getShoreline(camera.y - 100, true) + 40 : getShoreline(camera.y - 100, false) - 40;
                 let tack = spawnLeft ? 1 : -1;
                 let angle = tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
                 let colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f39c12'];
                 entities.push({ 
                     type: 'otherboat', 
                     x: startX, 
-                    y: -50 + Math.random() * 200, 
+                    y: camera.y - 100 + Math.random() * 50, 
                     angle: angle,
                     tack: tack,
-                    speed: 0.4 + Math.random() * 0.3, // Slower base speed than player's 1.2
+                    speed: 0.4 + Math.random() * 0.3, 
                     color: colors[Math.floor(Math.random() * colors.length)],
                     active: true,
                     lastTackFrame: frameCount
@@ -426,34 +467,31 @@
 
             // Update Entities & Collisions
             for (let e of entities) {
-                e.y += scrollY;
-                
                 if (e.type === 'otherboat' && e.active) {
-                    // Periodically tack
                     if (frameCount - e.lastTackFrame > 240 && Math.random() < 0.02) {
                         e.tack *= -1;
                         e.lastTackFrame = frameCount;
                     }
                     
-                    // Tack if they hit the invisible edges, but only if they are already fully on screen
-                    if (e.x > 45 && e.x < 60 && e.tack === -1) { e.tack = 1; e.lastTackFrame = frameCount; }
-                    if (e.x < canvas.width - 45 && e.x > canvas.width - 60 && e.tack === 1) { e.tack = -1; e.lastTackFrame = frameCount; }
+                    // NPC Shoreline collision
+                    let eLeftEdge = getShoreline(e.y, true) + 20;
+                    let eRightEdge = getShoreline(e.y, false) - 20;
+                    if (e.x < eLeftEdge && e.tack === -1) { e.tack = 1; e.lastTackFrame = frameCount; }
+                    if (e.x > eRightEdge && e.tack === 1) { e.tack = -1; e.lastTackFrame = frameCount; }
 
-                    // Update angle towards target tack
                     let targetAngle = e.tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
                     e.angle += getAngleDiff(targetAngle, e.angle) * 0.1;
 
-                    // Calculate Wind efficiency (same logic as player)
-                    let twa = getTWA(windDir, e.angle);
-                    let eff = 1.0;
-                    if (twa < 0.5) eff = 0.15; // In irons
-                    else if (twa < 0.9) eff = 1.0;
-                    else if (twa < 1.8) eff = 1.6;
-                    else eff = 1.1;
+                    let twaNPC = getTWA(windDir, e.angle);
+                    let effNPC = 1.0;
+                    if (twaNPC < 0.5) effNPC = 0.15; 
+                    else if (twaNPC < 0.9) effNPC = 1.0;
+                    else if (twaNPC < 1.8) effNPC = 1.6;
+                    else effNPC = 1.1;
 
-                    let moveSpeed = e.speed * eff;
+                    let moveSpeed = e.speed * effNPC;
                     e.x += Math.cos(e.angle) * moveSpeed;
-                    e.y += Math.sin(e.angle) * moveSpeed; // Also move forward based on its own angle
+                    e.y += Math.sin(e.angle) * moveSpeed;
                 }
                 
                 if (e.active) {
@@ -465,53 +503,48 @@
                     if (dist < collisionDist) {
                         e.active = false;
                         if (e.type === 'star') {
-                            boat.jump = Math.PI; // Triggers sine wave jump
-                            boat.spin = Math.PI * 2; // Triggers 360 spin
+                            boat.jump = Math.PI; 
+                            boat.spin = Math.PI * 2; 
                             let colors = ['#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#ffffff'];
                             boat.color = colors[Math.floor(Math.random() * colors.length)];
                             boat.score += 50;
                         } else if (e.type === 'crabpot') {
-                            boat.slowTimer = 90; // 1.5 seconds slow
+                            boat.slowTimer = 90; 
                             boat.score = Math.max(0, boat.score - 20);
                         } else if (e.type === 'otherboat') {
-                            boat.slowTimer = 120; // 2 seconds slow for hitting a boat
+                            boat.slowTimer = 120; 
                             boat.score = Math.max(0, boat.score - 40);
-                            boat.spin = Math.PI; // Spin out on crash
+                            boat.spin = Math.PI; 
                         }
                     }
                 }
             }
-            // Remove off-screen entities
-            entities = entities.filter(e => e.y < canvas.height + 50);
-
-            // Bouncy Sandbar logic (Auto-Tack)
-            if (boat.x < 45) {
-                boat.x = 45;
-                boat.tack = 1; 
-                boat.slowTimer = 30; // Small penalty for hitting sandbar
-            }
-            if (boat.x > canvas.width - 45) {
-                boat.x = canvas.width - 45;
-                boat.tack = -1; 
-                boat.slowTimer = 30;
-            }
+            // Remove entities that fall behind the camera
+            entities = entities.filter(e => e.y < camera.y + canvas.height + 200);
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
+            // Draw World Space
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+            
+            drawLand();
             drawWind();
             drawEntities();
             drawBoat();
+            
+            ctx.restore();
+            
+            // Draw Screen UI Space
             drawCompass();
             
-            // Score Display
             ctx.fillStyle = '#1a365d';
             ctx.font = 'bold 22px Newsreader';
             ctx.textAlign = 'left';
             ctx.fillText(`Score: ${Math.floor(boat.score)}`, 55, 35);
             
-            // Educational Warning
             if (inIrons) {
                 ctx.fillStyle = '#e74c3c';
                 ctx.font = 'bold 26px Fraunces';
@@ -533,7 +566,7 @@
             if (gameState === 'start') {
                 resetGame();
             } else if (gameState === 'playing') {
-                boat.tack *= -1; // Switch tack
+                boat.tack *= -1; 
             }
         }
 
