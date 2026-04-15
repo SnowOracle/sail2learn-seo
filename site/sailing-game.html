@@ -95,6 +95,11 @@
                 </ul>
                 <p style="margin-top: 20px; font-weight: bold;">Click to Start</p>
             </div>
+            <div id="game-over-screen" class="message" style="display: none;">
+                <h1>Oh no!</h1>
+                <p>You crashed your boat.</p>
+                <p style="margin-top: 15px; font-weight: bold;">Click to Try Again</p>
+            </div>
         </div>
     </div>
     
@@ -109,6 +114,7 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
         const container = document.getElementById('game-container');
 
         // Responsive Canvas
@@ -136,7 +142,8 @@
             jump: 0, 
             slowTimer: 0,
             puffTimer: 0,
-            score: 0
+            score: 0,
+            crashed: false
         };
 
         let bestScore = localStorage.getItem('sail2learn_best_score') || 0;
@@ -166,7 +173,7 @@
         function resetGame() {
             boat = {
                 x: 1000, y: 0, angle: -Math.PI / 4, tack: 1, 
-                color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, puffTimer: 0, score: 0
+                color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, puffTimer: 0, score: 0, crashed: false
             };
             windDir = Math.PI / 2;
             targetWindDir = Math.PI / 2;
@@ -174,6 +181,7 @@
             frameCount = 0;
             gameState = 'playing';
             startScreen.style.display = 'none';
+            if (gameOverScreen) gameOverScreen.style.display = 'none';
         }
 
         function drawLand() {
@@ -237,7 +245,7 @@
             }
             
             // Hull
-            ctx.fillStyle = boat.color;
+            ctx.fillStyle = boat.crashed ? '#888888' : boat.color;
             ctx.beginPath();
             ctx.ellipse(0, 0, 8, 25, 0, 0, Math.PI * 2);
             ctx.fill();
@@ -246,24 +254,46 @@
             ctx.stroke();
 
             // Sail
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-            ctx.beginPath();
-            ctx.moveTo(0, -8);
-            
-            if (inIrons) {
-                let flap = Math.sin(Date.now() / 40) * 6;
-                ctx.quadraticCurveTo(flap, 5, 0, 18);
+            if (boat.crashed) {
+                // Draw broken mast
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(-10, -15);
+                ctx.moveTo(0, 0);
+                ctx.lineTo(15, -5);
+                ctx.stroke();
+                
+                // Draw crash X
+                ctx.strokeStyle = '#e74c3c';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(-15, -15);
+                ctx.lineTo(15, 15);
+                ctx.moveTo(15, -15);
+                ctx.lineTo(-15, 15);
+                ctx.stroke();
             } else {
-                let relWind = getAngleDiff(windDir, boat.angle);
-                if (relWind > 0) {
-                    ctx.quadraticCurveTo(-22, 5, 0, 18);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                ctx.beginPath();
+                ctx.moveTo(0, -8);
+                
+                if (inIrons) {
+                    let flap = Math.sin(Date.now() / 40) * 6;
+                    ctx.quadraticCurveTo(flap, 5, 0, 18);
                 } else {
-                    ctx.quadraticCurveTo(22, 5, 0, 18);
+                    let relWind = getAngleDiff(windDir, boat.angle);
+                    if (relWind > 0) {
+                        ctx.quadraticCurveTo(-22, 5, 0, 18);
+                    } else {
+                        ctx.quadraticCurveTo(22, 5, 0, 18);
+                    }
                 }
+                ctx.lineTo(0, -8);
+                ctx.fill();
+                ctx.stroke();
             }
-            ctx.lineTo(0, -8);
-            ctx.fill();
-            ctx.stroke();
             
             if (boat.slowTimer > 0 && Math.floor(Date.now() / 100) % 2 === 0) {
                 ctx.fillStyle = 'rgba(231, 76, 60, 0.5)';
@@ -448,11 +478,15 @@
 
             let baseSpeed = 1.2; 
             let speed = baseSpeed * eff;
+            let moveY = Math.sin(boat.angle) * speed;
             boat.x += Math.cos(boat.angle) * speed;
-            boat.y += Math.sin(boat.angle) * speed; // Boat actually moves in world coordinates now!
+            boat.y += moveY; // Boat actually moves in world coordinates now!
 
-            // Score is based on how far North (negative Y) you have sailed
-            boat.score = Math.max(boat.score, -boat.y * 0.1);
+            // Accumulate score (2x multiplier if puff is active)
+            let scoreMultiplier = boat.puffTimer > 0 ? 2 : 1;
+            if (moveY < 0) {
+                boat.score += (-moveY * 0.1) * scoreMultiplier;
+            }
 
             // Update Best Score
             if (boat.score > bestScore) {
@@ -563,13 +597,10 @@
                                 let colors = ['#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#ffffff'];
                                 boat.color = colors[Math.floor(Math.random() * colors.length)];
                                 boat.score += 50;
-                            } else if (e.type === 'obstacle') {
-                                boat.slowTimer = 90; 
-                                boat.score = Math.max(0, boat.score - 20);
-                            } else if (e.type === 'otherboat') {
-                                boat.slowTimer = 120; 
-                                boat.score = Math.max(0, boat.score - 40);
-                                boat.spin = Math.PI; 
+                            } else if (e.type === 'obstacle' || e.type === 'otherboat') {
+                                gameState = 'gameover';
+                                boat.crashed = true;
+                                if (gameOverScreen) gameOverScreen.style.display = 'block';
                             }
                         }
                     }
@@ -621,7 +652,7 @@
             if (e.type === 'keydown' && e.code !== 'Space') return;
             if (e.type === 'keydown') e.preventDefault(); 
 
-            if (gameState === 'start') {
+            if (gameState === 'start' || gameState === 'gameover') {
                 resetGame();
             } else if (gameState === 'playing') {
                 boat.tack *= -1; 
