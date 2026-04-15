@@ -516,8 +516,8 @@
             boat.x += Math.cos(boat.angle) * speed;
             boat.y += moveY; // Boat actually moves in world coordinates now!
 
-            // Accumulate score (2x multiplier if puff is active)
-            let scoreMultiplier = boat.puffTimer > 0 ? 2 : 1;
+            // Accumulate score (3x multiplier if puff is active)
+            let scoreMultiplier = boat.puffTimer > 0 ? 3 : 1;
             if (moveY < 0) {
                 boat.score += (-moveY * 0.1) * scoreMultiplier;
             }
