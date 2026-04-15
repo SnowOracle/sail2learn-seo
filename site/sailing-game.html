@@ -155,6 +155,7 @@
         let floatingTexts = [];
         let scoreJuiceTimer = 0;
         let recentScoreGain = 0;
+        let obstacleCooldown = 0;
 
         function getAngleDiff(a, b) {
             let diff = a - b;
@@ -186,6 +187,7 @@
             floatingTexts = [];
             scoreJuiceTimer = 0;
             recentScoreGain = 0;
+            obstacleCooldown = 0;
             frameCount = 0;
             gameState = 'playing';
             startScreen.style.display = 'none';
@@ -622,11 +624,31 @@
             if (Math.random() < 0.0055) { // Puff (Wind Gust) - increased spawn rate
                 entities.push({ type: 'puff', x: camera.x + Math.random() * canvas.width, y: camera.y - 150, active: true });
             }
-            if (Math.random() < 0.012) { // Obstacle - spawn rate decreased by 20%
+            
+            if (obstacleCooldown > 0) {
+                obstacleCooldown--;
+            } else if (!inIrons && !isLeeBowed && Math.random() < 0.015) { // Only spawn obstacles when not struggling
                 let obstacleIcons = ['🪨', '🪵', '🌿', '🐢', '💻', '💼', '📁', '📱'];
-                let icon = obstacleIcons[Math.floor(Math.random() * obstacleIcons.length)];
-                entities.push({ type: 'obstacle', icon: icon, x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
+                
+                // Decide if it's a cluster or a single obstacle
+                let isCluster = Math.random() < 0.4; // 40% chance to spawn a cluster
+                let count = isCluster ? Math.floor(Math.random() * 3) + 2 : 1; // 1 to 4 obstacles
+                
+                let centerX = camera.x + Math.random() * canvas.width;
+                let centerY = camera.y - 50;
+                
+                for (let i = 0; i < count; i++) {
+                    let icon = obstacleIcons[Math.floor(Math.random() * obstacleIcons.length)];
+                    // Disperse them randomly around the center point (or exactly on center if it's just 1)
+                    let ox = count > 1 ? centerX + (Math.random() - 0.5) * 150 : centerX; 
+                    let oy = count > 1 ? centerY + (Math.random() - 0.5) * 80 : centerY;
+                    entities.push({ type: 'obstacle', icon: icon, x: ox, y: oy, active: true });
+                }
+                
+                // Set cooldown based on how many spawned to prevent walls
+                obstacleCooldown = count * 40 + 20; 
             }
+            
             if (Math.random() < 0.003) { // Star (Boon)
                 entities.push({ type: 'star', x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
             }
