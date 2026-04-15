@@ -151,6 +151,9 @@
         let entities = [];
         let inIrons = false;
         let isLeeBowed = false;
+        let floatingTexts = [];
+        let scoreJuiceTimer = 0;
+        let recentScoreGain = 0;
 
         function getAngleDiff(a, b) {
             let diff = a - b;
@@ -179,6 +182,9 @@
             windDir = Math.PI / 2;
             targetWindDir = Math.PI / 2;
             entities = [];
+            floatingTexts = [];
+            scoreJuiceTimer = 0;
+            recentScoreGain = 0;
             frameCount = 0;
             gameState = 'playing';
             startScreen.style.display = 'none';
@@ -518,9 +524,29 @@
 
             // Accumulate score (3x multiplier if puff is active)
             let scoreMultiplier = boat.puffTimer > 0 ? 3 : 1;
+            let gainedThisFrame = 0;
             if (moveY < 0) {
-                boat.score += (-moveY * 0.1) * scoreMultiplier;
+                gainedThisFrame = (-moveY * 0.1) * scoreMultiplier;
+                boat.score += gainedThisFrame;
             }
+            recentScoreGain += gainedThisFrame;
+            
+            // Check for massive rapid scoring
+            if (frameCount % 60 === 0) {
+                if (recentScoreGain > 80) { // e.g. lots of high speed/puffs
+                    scoreJuiceTimer = 40;
+                    floatingTexts.push({text: "SPEED DEMON!", x: boat.x, y: boat.y - 40, timer: 60});
+                }
+                recentScoreGain = 0; // reset every second
+            }
+            if (scoreJuiceTimer > 0) scoreJuiceTimer--;
+            
+            // Update floating texts
+            for (let ft of floatingTexts) {
+                ft.y -= 1.5; // float up
+                ft.timer--;
+            }
+            floatingTexts = floatingTexts.filter(ft => ft.timer > 0);
 
             // Update Best Score
             if (boat.score > bestScore) {
@@ -639,7 +665,16 @@
                                 boat.spin = Math.PI * 2; 
                                 let colors = ['#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#ffffff'];
                                 boat.color = colors[Math.floor(Math.random() * colors.length)];
-                                boat.score += 100;
+                                
+                                if (boat.puffTimer > 0) {
+                                    floatingTexts.push({text: "WIND RIDER! +300", x: boat.x, y: boat.y - 30, timer: 80});
+                                    boat.score += 300; // 3x multiplier applies to stars caught in puffs!
+                                    scoreJuiceTimer = 60;
+                                } else {
+                                    floatingTexts.push({text: "STAR! +100", x: boat.x, y: boat.y - 30, timer: 60});
+                                    boat.score += 100;
+                                    scoreJuiceTimer = 30;
+                                }
                             } else if (e.type === 'obstacle' || e.type === 'otherboat') {
                                 gameState = 'gameover';
                                 boat.crashed = true;
@@ -665,15 +700,42 @@
             drawEntities();
             drawBoat();
             
+            // Draw floating texts
+            for (let ft of floatingTexts) {
+                ctx.save();
+                ctx.translate(ft.x, ft.y);
+                ctx.fillStyle = `rgba(241, 196, 15, ${Math.min(1, ft.timer / 30)})`; // Gold, fades out in last 30 frames
+                ctx.strokeStyle = `rgba(0, 0, 0, ${Math.min(1, ft.timer / 30)})`;
+                ctx.lineWidth = 3;
+                ctx.font = 'bold 22px Fraunces';
+                ctx.textAlign = 'center';
+                ctx.strokeText(ft.text, 0, 0);
+                ctx.fillText(ft.text, 0, 0);
+                ctx.restore();
+            }
+            
             ctx.restore();
             
             // Draw Screen UI Space
             drawCompass();
             
-            ctx.fillStyle = '#1a365d';
-            ctx.font = 'bold 22px Newsreader';
+            ctx.save();
+            if (scoreJuiceTimer > 0) {
+                let pulse = Math.sin(Date.now() / 50) * 4;
+                ctx.fillStyle = '#f1c40f'; // Gold
+                ctx.font = `bold ${22 + pulse}px Newsreader`;
+                ctx.shadowColor = '#f1c40f';
+                ctx.shadowBlur = 15;
+            } else {
+                ctx.fillStyle = '#1a365d';
+                ctx.font = 'bold 22px Newsreader';
+                ctx.shadowBlur = 0;
+            }
             ctx.textAlign = 'left';
             ctx.fillText(`Score: ${Math.floor(boat.score)}`, 55, 35);
+            ctx.restore();
+            
+            ctx.fillStyle = '#1a365d';
             ctx.font = '16px Newsreader';
             ctx.fillText(`Best: ${bestScore}`, 55, 60);
             
