@@ -168,7 +168,7 @@
         // Procedural jagged shoreline
         function getShoreline(y, isLeft) {
             let noise = Math.sin(y * 0.005) * 80 + Math.sin(y * 0.02) * 30 + Math.cos(y * 0.001) * 150;
-            return isLeft ? 300 + noise : 1700 + noise; // The bay is roughly 1400px wide
+            return isLeft ? -200 + noise : 2200 + noise; // The bay is roughly 2400px wide
         }
 
         function resetGame() {
@@ -560,7 +560,7 @@
             if (Math.random() < 0.0055) { // Puff (Wind Gust) - increased spawn rate
                 entities.push({ type: 'puff', x: camera.x + Math.random() * canvas.width, y: camera.y - 150, active: true });
             }
-            if (Math.random() < 0.015) { // Obstacle
+            if (Math.random() < 0.012) { // Obstacle - spawn rate decreased by 20%
                 let obstacleIcons = ['🪨', '🪵', '🌿', '🐢', '💻', '💼', '📁', '📱'];
                 let icon = obstacleIcons[Math.floor(Math.random() * obstacleIcons.length)];
                 entities.push({ type: 'obstacle', icon: icon, x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
