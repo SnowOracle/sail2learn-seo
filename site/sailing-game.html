@@ -142,6 +142,7 @@
             jump: 0, 
             slowTimer: 0,
             puffTimer: 0,
+            ironsTimer: 0,
             score: 0,
             crashed: false
         };
@@ -177,7 +178,7 @@
         function resetGame() {
             boat = {
                 x: 1000, y: 0, angle: -Math.PI / 4, tack: 1, 
-                color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, puffTimer: 0, score: 0, crashed: false
+                color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, puffTimer: 0, ironsTimer: 0, score: 0, crashed: false
             };
             windDir = Math.PI / 2;
             targetWindDir = Math.PI / 2;
@@ -467,6 +468,22 @@
                     ctx.lineTo(0, -8);
                     ctx.fill();
                     ctx.stroke();
+                } else if (e.type === 'dolphin') {
+                    ctx.rotate(e.angle); // Face forward
+                    
+                    // Arc jump: timer goes 0->80. sin(0->PI) makes a perfect jump arc
+                    let jumpProgress = e.timer / 80;
+                    let height = Math.sin(jumpProgress * Math.PI) * 20; 
+                    let alpha = Math.min(1, Math.sin(jumpProgress * Math.PI) * 2); // Fade in/out at ends
+                    
+                    ctx.translate(0, -height);
+                    
+                    ctx.font = '22px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.globalAlpha = alpha;
+                    ctx.fillText('🐬', 0, 0);
+                    ctx.globalAlpha = 1.0;
                 }
                 
                 ctx.restore();
@@ -496,6 +513,25 @@
             else if (twa < 0.9) eff = 1.2; 
             else if (twa < 1.8) eff = 1.9; 
             else eff = 1.3; 
+
+            if (inIrons) {
+                boat.ironsTimer++;
+                // If stuck for ~1.5 seconds, start spawning playful dolphins
+                if (boat.ironsTimer > 90 && Math.random() < 0.03) {
+                    let dAngle = Math.random() * Math.PI * 2;
+                    let dist = 40 + Math.random() * 30; // Spawn in a ring around boat
+                    entities.push({
+                        type: 'dolphin',
+                        x: boat.x + Math.cos(dAngle) * dist,
+                        y: boat.y + Math.sin(dAngle) * dist,
+                        active: true,
+                        timer: 0, // frames alive
+                        angle: dAngle + Math.PI / 2 + (Math.random() - 0.5) // Swim roughly tangent
+                    });
+                }
+            } else {
+                boat.ironsTimer = 0;
+            }
 
             if (boat.slowTimer > 0) {
                 eff *= 0.3;
@@ -616,6 +652,14 @@
 
             // Update Entities & Collisions
             for (let e of entities) {
+                if (e.type === 'dolphin' && e.active) {
+                    e.timer++;
+                    e.x += Math.cos(e.angle) * 1.5;
+                    e.y += Math.sin(e.angle) * 1.5;
+                    // Lives for 80 frames
+                    if (e.timer > 80) e.active = false;
+                }
+
                 if (e.type === 'puff' && e.active) {
                     let windSpeed = 3.0; // Puffs move faster than boat
                     e.x += Math.cos(windDir) * windSpeed;
