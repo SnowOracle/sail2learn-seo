@@ -596,7 +596,7 @@
                                 boat.spin = Math.PI * 2; 
                                 let colors = ['#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#ffffff'];
                                 boat.color = colors[Math.floor(Math.random() * colors.length)];
-                                boat.score += 50;
+                                boat.score += 100;
                             } else if (e.type === 'obstacle' || e.type === 'otherboat') {
                                 gameState = 'gameover';
                                 boat.crashed = true;
