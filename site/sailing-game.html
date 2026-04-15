@@ -89,7 +89,7 @@
                 <p>Sail up the coast of Sarasota!</p>
                 <ul style="text-align: left; font-size: 0.95rem; margin-top: 15px; padding-left: 20px;">
                     <li>Press <span class="key">Space</span> to <b>Tack</b>.</li>
-                    <li>Avoid <b>Crab Pots</b>, <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
+                    <li>Avoid <b>Obstacles</b> (Crab Pots, Seals, Work), <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
                     <li>Catch <b>Stars</b> for a speed boost!</li>
                     <li>Watch the <b>Wind Compass</b>! If the wind shifts, you might get stuck "In Irons".</li>
                 </ul>
@@ -332,15 +332,15 @@
                 ctx.save();
                 ctx.translate(e.x, e.y);
                 
-                if (e.type === 'crabpot') {
-                    ctx.fillStyle = '#e67e22';
+                if (e.type === 'obstacle') {
+                    ctx.font = '26px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
                     ctx.beginPath();
-                    ctx.arc(0, 0, 10, 0, Math.PI*2);
+                    ctx.arc(0, 0, 14, 0, Math.PI*2);
                     ctx.fill();
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(-10, -3, 20, 6);
-                    ctx.strokeStyle = '#333';
-                    ctx.stroke();
+                    ctx.fillText(e.icon, 0, 2);
                 } else if (e.type === 'star') {
                     ctx.fillStyle = '#f1c40f';
                     ctx.beginPath();
@@ -447,8 +447,10 @@
             }
 
             // Entity Spawning (Spawn just out of view above the camera)
-            if (Math.random() < 0.015) { // Crab pot
-                entities.push({ type: 'crabpot', x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
+            if (Math.random() < 0.015) { // Obstacle
+                let obstacleIcons = ['🦀', '🦭', '📁', '🛟', '🐊', '💼'];
+                let icon = obstacleIcons[Math.floor(Math.random() * obstacleIcons.length)];
+                entities.push({ type: 'obstacle', icon: icon, x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
             }
             if (Math.random() < 0.003) { // Star (Boon)
                 entities.push({ type: 'star', x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
@@ -516,7 +518,7 @@
                             let colors = ['#e74c3c', '#9b59b6', '#2ecc71', '#f1c40f', '#1abc9c', '#ffffff'];
                             boat.color = colors[Math.floor(Math.random() * colors.length)];
                             boat.score += 50;
-                        } else if (e.type === 'crabpot') {
+                        } else if (e.type === 'obstacle') {
                             boat.slowTimer = 90; 
                             boat.score = Math.max(0, boat.score - 20);
                         } else if (e.type === 'otherboat') {
