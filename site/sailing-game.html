@@ -138,6 +138,8 @@
             score: 0
         };
 
+        let bestScore = localStorage.getItem('sail2learn_best_score') || 0;
+        
         let entities = [];
         let inIrons = false;
 
@@ -419,6 +421,12 @@
             // Score is based on how far North (negative Y) you have sailed
             boat.score = Math.max(boat.score, -boat.y * 0.1);
 
+            // Update Best Score
+            if (boat.score > bestScore) {
+                bestScore = Math.floor(boat.score);
+                localStorage.setItem('sail2learn_best_score', bestScore);
+            }
+
             // Camera tracks the boat
             camera.x = boat.x - canvas.width / 2;
             camera.y = boat.y - canvas.height * 0.75; // Boat is positioned lower on the screen
@@ -544,6 +552,8 @@
             ctx.font = 'bold 22px Newsreader';
             ctx.textAlign = 'left';
             ctx.fillText(`Score: ${Math.floor(boat.score)}`, 55, 35);
+            ctx.font = '16px Newsreader';
+            ctx.fillText(`Best: ${bestScore}`, 55, 60);
             
             if (inIrons) {
                 ctx.fillStyle = '#e74c3c';
