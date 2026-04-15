@@ -343,13 +343,13 @@
                     ctx.rotate(windDir - Math.PI / 2); // Align puff with the wind direction (windDir is the angle the wind is blowing towards)
                     ctx.fillStyle = 'rgba(26, 54, 93, 0.15)'; // Darker water patch
                     ctx.beginPath();
-                    let points = 50;
-                    let length = 160; // Make it significantly longer
-                    let width = 50;
+                    let points = 60;
+                    let length = 280; // Much longer (560px total)
+                    let width = 90; // Wider
                     for (let i = 0; i <= points; i++) {
                         let angle = (i / points) * Math.PI * 2;
                         // Add sine wave noise for jagged, rippling edges
-                        let noise = Math.sin(angle * 12 + Date.now() / 150) * 8 + Math.cos(angle * 7) * 5;
+                        let noise = Math.sin(angle * 12 + Date.now() / 150) * 12 + Math.cos(angle * 7) * 8;
                         let px = Math.cos(angle) * (length + noise); // length is along X after rotation
                         let py = Math.sin(angle) * (width + noise);
                         if (i === 0) ctx.moveTo(px, py);
@@ -538,11 +538,11 @@
                     let dx = e.x - boat.x;
                     let dy = e.y - boat.y;
                     let dist = Math.sqrt(dx*dx + dy*dy);
-                    let collisionDist = e.type === 'otherboat' ? 30 : (e.type === 'puff' ? 100 : 22);
+                    let collisionDist = e.type === 'otherboat' ? 30 : (e.type === 'puff' ? 150 : 22);
                     
                     if (dist < collisionDist) {
                         if (e.type === 'puff') {
-                            boat.puffTimer = 5; // Applies puff boost while inside
+                            boat.puffTimer = 45; // Applies puff boost while inside, plus lingering momentum!
                         } else {
                             e.active = false;
                             if (e.type === 'star') {
