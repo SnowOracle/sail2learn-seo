@@ -496,7 +496,7 @@
                 boat.slowTimer--;
             }
             if (boat.puffTimer > 0) {
-                eff *= 1.6;
+                eff *= 2.2; // Increased speed buff
                 boat.puffTimer--;
             }
 
@@ -557,7 +557,7 @@
             }
 
             // Entity Spawning (Spawn just out of view above the camera)
-            if (Math.random() < 0.005) { // Puff (Wind Gust)
+            if (Math.random() < 0.0055) { // Puff (Wind Gust) - increased spawn rate
                 entities.push({ type: 'puff', x: camera.x + Math.random() * canvas.width, y: camera.y - 150, active: true });
             }
             if (Math.random() < 0.015) { // Obstacle
@@ -591,7 +591,7 @@
             // Update Entities & Collisions
             for (let e of entities) {
                 if (e.type === 'puff' && e.active) {
-                    let windSpeed = 3.6; // Puffs move faster than boat
+                    let windSpeed = 3.0; // Puffs move faster than boat
                     e.x += Math.cos(windDir) * windSpeed;
                     e.y += Math.sin(windDir) * windSpeed;
                 }
