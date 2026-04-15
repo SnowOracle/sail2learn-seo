@@ -405,19 +405,22 @@
             if (Math.random() < 0.003) { // Star (Boon)
                 entities.push({ type: 'star', x: 50 + Math.random() * (canvas.width - 100), y: -30, active: true });
             }
-            if (Math.random() < 0.005) { // Other boat spawning at edges
+            if (Math.random() < 0.0025) { // Other boat spawning at edges (reduced spawn rate)
                 let spawnLeft = Math.random() > 0.5;
                 let startX = spawnLeft ? -30 : canvas.width + 30;
-                let angle = spawnLeft ? Math.random() * 0.5 + 0.2 : -Math.random() * 0.5 - 0.2; // Move inwards
+                let tack = spawnLeft ? 1 : -1;
+                let angle = tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
                 let colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f39c12'];
                 entities.push({ 
                     type: 'otherboat', 
                     x: startX, 
                     y: -50 + Math.random() * 200, 
                     angle: angle,
-                    speed: 0.8 + Math.random() * 0.6,
+                    tack: tack,
+                    speed: 0.4 + Math.random() * 0.3, // Slower base speed than player's 1.2
                     color: colors[Math.floor(Math.random() * colors.length)],
-                    active: true 
+                    active: true,
+                    lastTackFrame: frameCount
                 });
             }
 
@@ -426,8 +429,31 @@
                 e.y += scrollY;
                 
                 if (e.type === 'otherboat' && e.active) {
-                    e.x += Math.cos(e.angle) * e.speed;
-                    e.y += Math.sin(e.angle) * e.speed; // Also move forward based on its own angle
+                    // Periodically tack
+                    if (frameCount - e.lastTackFrame > 240 && Math.random() < 0.02) {
+                        e.tack *= -1;
+                        e.lastTackFrame = frameCount;
+                    }
+                    
+                    // Tack if they hit the invisible edges, but only if they are already fully on screen
+                    if (e.x > 45 && e.x < 60 && e.tack === -1) { e.tack = 1; e.lastTackFrame = frameCount; }
+                    if (e.x < canvas.width - 45 && e.x > canvas.width - 60 && e.tack === 1) { e.tack = -1; e.lastTackFrame = frameCount; }
+
+                    // Update angle towards target tack
+                    let targetAngle = e.tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
+                    e.angle += getAngleDiff(targetAngle, e.angle) * 0.1;
+
+                    // Calculate Wind efficiency (same logic as player)
+                    let twa = getTWA(windDir, e.angle);
+                    let eff = 1.0;
+                    if (twa < 0.5) eff = 0.15; // In irons
+                    else if (twa < 0.9) eff = 1.0;
+                    else if (twa < 1.8) eff = 1.6;
+                    else eff = 1.1;
+
+                    let moveSpeed = e.speed * eff;
+                    e.x += Math.cos(e.angle) * moveSpeed;
+                    e.y += Math.sin(e.angle) * moveSpeed; // Also move forward based on its own angle
                 }
                 
                 if (e.active) {
