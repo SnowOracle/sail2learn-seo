@@ -76,6 +76,67 @@
             font-weight: bold;
             color: #333;
         }
+        .log-button {
+            display: inline-block;
+            margin-top: 12px;
+            background: #1a365d;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-family: 'Newsreader', serif;
+            font-size: 0.95rem;
+            pointer-events: auto;
+        }
+        .log-button:hover { background: #294b7a; }
+        #captains-log {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff8e7;
+            color: #1a365d;
+            border: 3px solid #1a365d;
+            border-radius: 10px;
+            padding: 22px 26px;
+            max-width: 460px;
+            width: 85%;
+            max-height: 75%;
+            overflow-y: auto;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+            pointer-events: auto;
+            display: none;
+            z-index: 10;
+        }
+        #captains-log h2 { font-family: 'Fraunces', serif; margin: 0 0 8px; }
+        #captains-log .lore-entry {
+            border-top: 1px solid #d9c89a;
+            padding: 10px 0;
+        }
+        #captains-log .lore-entry:first-of-type { border-top: none; }
+        #captains-log .lore-title { font-weight: bold; font-family: 'Fraunces', serif; margin-bottom: 4px; }
+        #captains-log .lore-locked { color: #999; font-style: italic; }
+        .toast {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 54, 93, 0.95);
+            color: #fff;
+            border-left: 4px solid #f1c40f;
+            border-radius: 6px;
+            padding: 10px 16px;
+            min-width: 240px;
+            max-width: 80%;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+            font-size: 0.95rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 5;
+        }
+        .toast.show { opacity: 1; }
+        .toast .toast-title { font-family: 'Fraunces', serif; font-weight: bold; color: #f1c40f; margin-bottom: 2px; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Newsreader:wght@400;500&display=swap" rel="stylesheet">
 </head>
@@ -89,17 +150,27 @@
                 <p>Sail up the coast of Sarasota!</p>
                 <ul style="text-align: left; font-size: 0.95rem; margin-top: 15px; padding-left: 20px;">
                     <li>Press <span class="key">Space</span> to <b>Tack</b>.</li>
-                    <li>Avoid <b>Obstacles</b> (Rocks, Logs, Turtles, Work), <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
-                    <li>Catch <b>Stars</b> and sail through dark <b>Wind Gusts</b> for a speed boost!</li>
-                    <li>Watch the <b>Wind Compass</b>! If the wind shifts, you might get stuck "In Irons".</li>
+                    <li>Avoid <b>Obstacles</b>, <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
+                    <li>Catch <b>Stars</b> and sail through dark <b>Wind Gusts</b> for a speed boost.</li>
+                    <li>Sail between <b>Red &amp; Green Channel Markers</b> to build your streak and unlock Sarasota lore.</li>
+                    <li>Hug the shore (gold zone) for a 1.5x multiplier — but watch the wind!</li>
                 </ul>
                 <p style="margin-top: 20px; font-weight: bold;">Click to Start</p>
+                <button class="log-button" id="open-log-btn" onclick="event.stopPropagation(); document.getElementById('captains-log').style.display='block'; renderCaptainsLog();">📜 Captain's Log</button>
             </div>
             <div id="game-over-screen" class="message" style="display: none;">
                 <h1>Oh no!</h1>
                 <p>You crashed your boat.</p>
                 <p style="margin-top: 15px; font-weight: bold;">Click to Try Again</p>
+                <button class="log-button" onclick="event.stopPropagation(); document.getElementById('captains-log').style.display='block'; renderCaptainsLog();">📜 Captain's Log</button>
             </div>
+            <div id="captains-log">
+                <h2>📜 Captain's Log</h2>
+                <p style="font-size: 0.9rem; opacity: 0.8;">Sarasota Bay lore unlocked through your sailing achievements.</p>
+                <div id="log-entries"></div>
+                <button class="log-button" style="margin-top: 14px;" onclick="document.getElementById('captains-log').style.display='none';">Close</button>
+            </div>
+            <div id="toast" class="toast"></div>
         </div>
     </div>
     
@@ -157,6 +228,87 @@
         let recentScoreGain = 0;
         let obstacleCooldown = 0;
 
+        // Channel marker state
+        let nextMarkerY = -600;       // World-Y where the next marker pair will spawn
+        let markerStreak = 0;         // Current consecutive gates passed
+        let lastMarkerPairId = -1;    // Avoid double-counting
+        let markerPairCounter = 0;
+        
+        // Wind shift preview state
+        let nextWindShiftFrame = 480; // First wind shift will happen at frame 480
+        let windShiftPreviewActive = false;
+        
+        // In-Irons recovery tracking
+        let lastInIronsEndFrame = -9999;
+        let lastInIronsStartFrame = -9999;
+        
+        // Achievements (persisted)
+        let unlockedAchievements = JSON.parse(localStorage.getItem('sail2learn_achievements') || '{}');
+        
+        // Lore catalog. Each unlocks via a specific achievement key.
+        const LORE_CATALOG = [
+            {
+                key: 'channel_cruiser',
+                title: 'Channel Cruiser',
+                requirement: 'Pass 3 channel markers in a row',
+                lore: 'Sarasota Bay\'s channel markers follow the "Red, Right, Returning" rule — keep red markers on your right when returning to the dock. The bay\'s navigable channels are dredged to roughly 14 feet, threading between shallow grass flats that locals know to avoid at low tide.'
+            },
+            {
+                key: 'bay_pilot',
+                title: 'Bay Pilot',
+                requirement: 'Pass 5 channel markers in a row',
+                lore: 'Big Pass and New Pass are the two inlets connecting Sarasota Bay to the Gulf of Mexico. Big Pass (between Lido and Siesta Key) is the deeper, traditional route; New Pass (between Lido and Longboat Key) was carved by an 1848 hurricane and is more dynamic — its sandbars shift every storm season.'
+            },
+            {
+                key: 'harbor_master',
+                title: 'Harbor Master',
+                requirement: 'Pass 8 channel markers in a row',
+                lore: 'The Sailor Circle in downtown Sarasota — that bronze ship\'s wheel sculpture at Bayfront Park — honors the city\'s deep maritime tradition. Sarasota Yacht Club, founded in 1926, still hosts weekly Wednesday-night races right in front of it. Many of America\'s top junior sailors trained here.'
+            },
+            {
+                key: 'wind_whisperer',
+                title: 'Wind Whisperer',
+                requirement: 'Recover from In Irons within 1 second',
+                lore: 'Sarasota\'s afternoon sea breeze is famously reliable — typically building to 12-15 knots from the west by 2 PM in summer. Skilled local sailors learn to "read the water" for darker patches (puffs) and use them to escape light-air pockets near the mangroves.'
+            },
+            {
+                key: 'coastal_hugger',
+                title: 'Coastal Hugger',
+                requirement: 'Score 500+ points sailing along the shore',
+                lore: 'The shoreline along Lido Key and Bird Key creates predictable wind bends — a phenomenon called "shoreline lift." Racing tacticians deliberately work the edges to catch these favorable shifts. It\'s risky (you can run aground) but pays off when you read it right.'
+            }
+        ];
+
+        function showToast(title, body, ms) {
+            const t = document.getElementById('toast');
+            t.innerHTML = `<div class="toast-title">${title}</div><div>${body}</div>`;
+            t.classList.add('show');
+            clearTimeout(showToast._timer);
+            showToast._timer = setTimeout(() => t.classList.remove('show'), ms || 3500);
+        }
+        
+        function unlockAchievement(key) {
+            if (unlockedAchievements[key]) return false;
+            const lore = LORE_CATALOG.find(l => l.key === key);
+            if (!lore) return false;
+            unlockedAchievements[key] = { unlockedAt: Date.now() };
+            localStorage.setItem('sail2learn_achievements', JSON.stringify(unlockedAchievements));
+            showToast(`🏆 ${lore.title} Unlocked!`, lore.lore.length > 140 ? lore.lore.slice(0, 140) + '… (View in Captain\'s Log)' : lore.lore, 5000);
+            return true;
+        }
+        
+        function renderCaptainsLog() {
+            const container = document.getElementById('log-entries');
+            container.innerHTML = LORE_CATALOG.map(entry => {
+                const unlocked = unlockedAchievements[entry.key];
+                if (unlocked) {
+                    return `<div class="lore-entry"><div class="lore-title">🏆 ${entry.title}</div><div>${entry.lore}</div></div>`;
+                } else {
+                    return `<div class="lore-entry lore-locked"><div class="lore-title">🔒 ???</div><div>Unlock: ${entry.requirement}</div></div>`;
+                }
+            }).join('');
+        }
+
         function getAngleDiff(a, b) {
             let diff = a - b;
             while (diff > Math.PI) diff -= Math.PI * 2;
@@ -179,7 +331,8 @@
         function resetGame() {
             boat = {
                 x: 1000, y: 0, angle: -Math.PI / 4, tack: 1, 
-                color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, puffTimer: 0, ironsTimer: 0, score: 0, crashed: false
+                color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, puffTimer: 0, ironsTimer: 0, score: 0, crashed: false,
+                coastalScore: 0, recoveryBoost: 0
             };
             windDir = Math.PI / 2;
             targetWindDir = Math.PI / 2;
@@ -188,13 +341,55 @@
             scoreJuiceTimer = 0;
             recentScoreGain = 0;
             obstacleCooldown = 0;
+            nextMarkerY = -600;
+            markerStreak = 0;
+            lastMarkerPairId = -1;
+            markerPairCounter = 0;
+            nextWindShiftFrame = 480;
+            windShiftPreviewActive = false;
+            lastInIronsEndFrame = -9999;
+            lastInIronsStartFrame = -9999;
             frameCount = 0;
             gameState = 'playing';
             startScreen.style.display = 'none';
             if (gameOverScreen) gameOverScreen.style.display = 'none';
+            document.getElementById('captains-log').style.display = 'none';
         }
 
         function drawLand() {
+            // Coastal "lift zone" tint - subtle gold band along shores when not in trouble
+            let safeZone = !inIrons && !isLeeBowed;
+            if (safeZone) {
+                ctx.fillStyle = 'rgba(241, 196, 15, 0.08)';
+                let startY = camera.y - 100;
+                let endY = camera.y + canvas.height + 100;
+                let step = 40;
+                // Left zone
+                ctx.beginPath();
+                for(let y = startY; y <= endY + step; y += step) {
+                    let s = getShoreline(y, true);
+                    ctx.lineTo(s, y);
+                }
+                for(let y = endY + step; y >= startY; y -= step) {
+                    let s = getShoreline(y, true) + 150;
+                    ctx.lineTo(s, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                // Right zone
+                ctx.beginPath();
+                for(let y = startY; y <= endY + step; y += step) {
+                    let s = getShoreline(y, false);
+                    ctx.lineTo(s, y);
+                }
+                for(let y = endY + step; y >= startY; y -= step) {
+                    let s = getShoreline(y, false) - 150;
+                    ctx.lineTo(s, y);
+                }
+                ctx.closePath();
+                ctx.fill();
+            }
+            
             ctx.fillStyle = '#e6c280'; // sand
             ctx.strokeStyle = '#c2a15f'; // darker shore edge
             ctx.lineWidth = 6;
@@ -410,6 +605,36 @@
             ctx.fillText("WIND", 0, -12);
             
             ctx.restore();
+            
+            // Wind shift preview indicator (only when near shore)
+            if (windShiftPreviewActive) {
+                ctx.save();
+                ctx.translate(canvas.width - 50, 50);
+                let pulse = 0.4 + 0.6 * Math.abs(Math.sin(Date.now() / 200));
+                ctx.strokeStyle = `rgba(241, 196, 15, ${pulse})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, 38, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Hint arrow showing target direction
+                ctx.rotate(targetWindDir);
+                ctx.fillStyle = `rgba(241, 196, 15, ${pulse})`;
+                ctx.beginPath();
+                ctx.moveTo(0, 36);
+                ctx.lineTo(-5, 28);
+                ctx.lineTo(5, 28);
+                ctx.fill();
+                ctx.restore();
+                
+                // Label
+                ctx.save();
+                ctx.fillStyle = '#f1c40f';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('SHIFT INCOMING', canvas.width - 50, 100);
+                ctx.restore();
+            }
         }
 
         function drawEntities() {
@@ -529,6 +754,52 @@
                     ctx.globalAlpha = alpha;
                     ctx.fillText('🐬', 0, 0);
                     ctx.globalAlpha = 1.0;
+                } else if (e.type === 'marker') {
+                    // Buoy: floating cylinder with light on top, painted red or green
+                    let bob = Math.sin((Date.now() + e.x * 7) / 400) * 2;
+                    ctx.translate(0, bob);
+                    let col = e.side === 'red' ? '#c0392b' : '#27ae60';
+                    let topShape = e.side === 'red' ? 'cylinder' : 'cone';
+                    
+                    // Water ripple
+                    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 12, 18, 5, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    
+                    // Buoy body
+                    ctx.fillStyle = col;
+                    ctx.strokeStyle = '#1a365d';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-7, 8);
+                    ctx.lineTo(7, 8);
+                    if (topShape === 'cone') {
+                        ctx.lineTo(0, -14);
+                    } else {
+                        ctx.lineTo(7, -10);
+                        ctx.lineTo(-7, -10);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Light on top
+                    ctx.fillStyle = '#fff8b0';
+                    ctx.beginPath();
+                    ctx.arc(0, topShape === 'cone' ? -16 : -13, 3, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+                } else if (e.type === 'gate') {
+                    // Subtle horizontal "course line" between the two markers
+                    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+                    ctx.setLineDash([6, 8]);
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(-e.gateHalfWidth, 0);
+                    ctx.lineTo(e.gateHalfWidth, 0);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
                 }
                 
                 ctx.restore();
@@ -539,12 +810,18 @@
             if (gameState !== 'playing') return;
             frameCount++;
 
-            if (frameCount % 480 === 0) {
+            // Wind shift scheduling with preview
+            if (frameCount === nextWindShiftFrame) {
                 let options = [Math.PI / 4, Math.PI / 2, 3 * Math.PI / 4];
                 let currentIdx = options.indexOf(targetWindDir);
                 let newOptions = options.filter((_, i) => i !== currentIdx);
                 targetWindDir = newOptions[Math.floor(Math.random() * newOptions.length)];
+                nextWindShiftFrame = frameCount + 480;
+                windShiftPreviewActive = false;
             }
+            // Show preview ~2s before shift, only when near a shore
+            let nearShore = (boat.x - getShoreline(boat.y, true) < 220) || (getShoreline(boat.y, false) - boat.x < 220);
+            windShiftPreviewActive = nearShore && (nextWindShiftFrame - frameCount < 120) && (nextWindShiftFrame - frameCount > 0);
             windDir += (targetWindDir - windDir) * 0.02;
 
             let targetBoatAngle = boat.tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
@@ -552,6 +829,7 @@
 
             let twa = getTWA(windDir, boat.angle);
             let eff = 1.0;
+            let wasInIrons = inIrons;
             inIrons = false;
             
             if (twa < 0.5) { eff = 0.18; inIrons = true; } 
@@ -560,6 +838,7 @@
             else eff = 1.3; 
 
             if (inIrons) {
+                if (!wasInIrons) lastInIronsStartFrame = frameCount;
                 boat.ironsTimer++;
                 // If stuck for ~1.5 seconds, start spawning playful dolphins
                 if (boat.ironsTimer > 90 && Math.random() < 0.03) {
@@ -575,7 +854,23 @@
                     });
                 }
             } else {
+                if (wasInIrons) {
+                    // Just recovered! Trigger recovery burst.
+                    let stuckDuration = frameCount - lastInIronsStartFrame;
+                    if (stuckDuration < 180) { // recovered within 3s
+                        boat.recoveryBoost = 60; // 1s of 1.5x speed
+                        floatingTexts.push({text: "RECOVERY!", x: boat.x, y: boat.y - 30, timer: 70});
+                        scoreJuiceTimer = Math.max(scoreJuiceTimer, 40);
+                        if (stuckDuration < 60) unlockAchievement('wind_whisperer');
+                    }
+                    lastInIronsEndFrame = frameCount;
+                }
                 boat.ironsTimer = 0;
+            }
+            
+            if (boat.recoveryBoost > 0) {
+                eff *= 1.5;
+                boat.recoveryBoost--;
             }
 
             if (boat.slowTimer > 0) {
@@ -603,14 +898,25 @@
             boat.x += Math.cos(boat.angle) * speed;
             boat.y += moveY; // Boat actually moves in world coordinates now!
 
-            // Accumulate score (3x multiplier if puff is active)
+            // Coastal Hugger zone: 150px from shore, not in trouble
+            let leftEdgeNow = getShoreline(boat.y, true);
+            let rightEdgeNow = getShoreline(boat.y, false);
+            let nearLeftShore = (boat.x - leftEdgeNow) < 150;
+            let nearRightShore = (rightEdgeNow - boat.x) < 150;
+            let inCoastalZone = (nearLeftShore || nearRightShore) && !inIrons && !isLeeBowed && !boat.crashed;
+            
+            // Accumulate score: 3x in puff, +50% in coastal zone
             let scoreMultiplier = boat.puffTimer > 0 ? 3 : 1;
+            if (inCoastalZone) scoreMultiplier *= 1.5;
             let gainedThisFrame = 0;
             if (moveY < 0) {
                 gainedThisFrame = (-moveY * 0.1) * scoreMultiplier;
                 boat.score += gainedThisFrame;
+                if (inCoastalZone) boat.coastalScore += gainedThisFrame;
             }
             recentScoreGain += gainedThisFrame;
+            
+            if (boat.coastalScore >= 500) unlockAchievement('coastal_hugger');
             
             // Check for massive rapid scoring
             if (frameCount % 60 === 0) {
@@ -694,6 +1000,31 @@
             
             if (Math.random() < 0.003) { // Star (Boon)
                 entities.push({ type: 'star', x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
+            }
+            
+            // Channel marker pairs: spawn deterministically every 600 world-y units (boat sails -y)
+            while (boat.y - 200 < nextMarkerY) {
+                markerPairCounter++;
+                let pairId = markerPairCounter;
+                // Center the gate roughly mid-bay with slight wander
+                let centerX = 1000 + Math.sin(nextMarkerY * 0.003) * 250;
+                let gateHalfWidth = 180;
+                entities.push({
+                    type: 'marker', side: 'red',
+                    x: centerX + gateHalfWidth, y: nextMarkerY,
+                    pairId: pairId, active: true
+                });
+                entities.push({
+                    type: 'marker', side: 'green',
+                    x: centerX - gateHalfWidth, y: nextMarkerY,
+                    pairId: pairId, active: true
+                });
+                entities.push({
+                    type: 'gate', x: centerX, y: nextMarkerY,
+                    pairId: pairId, gateHalfWidth: gateHalfWidth,
+                    active: true, triggered: false
+                });
+                nextMarkerY -= 600;
             }
             if (Math.random() < 0.003) { // Other boat spawning - increased by 20%
                 let spawnLeft = Math.random() > 0.5;
@@ -792,6 +1123,31 @@
                     e.y += Math.sin(e.angle) * moveSpeed;
                 }
                 
+                if (e.type === 'gate' && e.active && !e.triggered) {
+                    // Trigger when boat crosses the gate's Y line (sailing -y, so passing means boat.y < e.y)
+                    if (boat.y < e.y && Math.abs(boat.x - e.x) < e.gateHalfWidth) {
+                        e.triggered = true;
+                        e.active = false;
+                        markerStreak++;
+                        boat.score += 50;
+                        floatingTexts.push({text: `ON COURSE! +50 (${markerStreak})`, x: boat.x, y: boat.y - 30, timer: 70});
+                        scoreJuiceTimer = Math.max(scoreJuiceTimer, 30);
+                        if (markerStreak === 3) unlockAchievement('channel_cruiser');
+                        if (markerStreak === 5) unlockAchievement('bay_pilot');
+                        if (markerStreak === 8) unlockAchievement('harbor_master');
+                    } else if (boat.y < e.y - 40) {
+                        // Missed the gate
+                        e.triggered = true;
+                        e.active = false;
+                        if (markerStreak > 0) {
+                            floatingTexts.push({text: 'streak lost', x: boat.x, y: boat.y - 30, timer: 50});
+                        }
+                        markerStreak = 0;
+                    }
+                }
+                
+                if (e.type === 'marker' || e.type === 'gate') continue; // No physical collision
+                
                 if (e.active) {
                     let dx = e.x - boat.x;
                     let dy = e.y - boat.y;
@@ -881,6 +1237,11 @@
             ctx.fillStyle = '#1a365d';
             ctx.font = '16px Newsreader';
             ctx.fillText(`Best: ${bestScore}`, 55, 60);
+            if (markerStreak > 0) {
+                ctx.fillStyle = '#16a085';
+                ctx.font = 'bold 14px Newsreader';
+                ctx.fillText(`Channel Streak: ${markerStreak}`, 55, 82);
+            }
             
             if (inIrons) {
                 ctx.fillStyle = '#e74c3c';
@@ -899,6 +1260,9 @@
         function handleInput(e) {
             if (e.type === 'keydown' && e.code !== 'Space') return;
             if (e.type === 'keydown') e.preventDefault(); 
+            
+            // Don't restart the game if the Captain's Log is open
+            if (document.getElementById('captains-log').style.display === 'block') return;
 
             if (gameState === 'start' || gameState === 'gameover') {
                 resetGame();
