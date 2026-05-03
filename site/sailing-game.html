@@ -1496,6 +1496,12 @@
 
         function update() {
             if (gameState !== 'playing') return;
+            // Pause world simulation while docked at a trader island (shop open)
+            if (document.getElementById('shop-modal').style.display === 'flex') return;
+            // Also pause while reading an unlock entry
+            if (document.getElementById('unlock-popup').style.display === 'flex') return;
+            // And while the Captain's Log is open
+            if (document.getElementById('captains-log').style.display === 'block') return;
             frameCount++;
 
             // Wind shift scheduling with preview
