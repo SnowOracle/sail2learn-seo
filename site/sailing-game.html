@@ -211,6 +211,136 @@
             opacity: 0.7;
         }
         #debug-toggle-btn:hover { opacity: 1; }
+        
+        /* Pokedex-style unlock popup */
+        #unlock-popup {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            pointer-events: auto;
+        }
+        #unlock-popup .card {
+            background: linear-gradient(160deg, #fff8e7 0%, #fbe9b4 100%);
+            border: 4px solid #1a365d;
+            border-radius: 14px;
+            padding: 22px 28px;
+            max-width: 420px;
+            width: 80%;
+            text-align: center;
+            box-shadow: 0 0 0 4px #f1c40f, 0 18px 40px rgba(0,0,0,0.45);
+            animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+            60% { transform: scale(1.08) rotate(2deg); }
+            100% { transform: scale(1) rotate(0); opacity: 1; }
+        }
+        #unlock-popup .banner {
+            background: #f1c40f;
+            color: #1a365d;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        #unlock-popup .icon {
+            font-size: 4rem;
+            margin: 8px 0;
+            animation: bob 2s ease-in-out infinite;
+            display: inline-block;
+        }
+        @keyframes bob {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        #unlock-popup h2 { font-family: 'Fraunces', serif; margin: 4px 0 6px; color: #1a365d; }
+        #unlock-popup .subtitle { font-style: italic; color: #555; font-size: 0.9rem; margin-bottom: 10px; }
+        #unlock-popup .body { color: #1a365d; font-size: 0.95rem; line-height: 1.45; text-align: left; padding: 8px 4px; }
+        #unlock-popup .stat-row { display: flex; gap: 10px; justify-content: center; margin: 12px 0; flex-wrap: wrap; }
+        #unlock-popup .stat { background: #1a365d; color: #f1c40f; border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; font-weight: 600; }
+        
+        /* Shop modal */
+        #shop-modal {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff8e7;
+            border: 3px solid #1a365d;
+            border-radius: 12px;
+            padding: 18px 22px;
+            width: 88%;
+            max-width: 520px;
+            max-height: 82%;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            pointer-events: auto;
+            z-index: 12;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+        #shop-modal h2 {
+            font-family: 'Fraunces', serif;
+            margin: 0 0 4px;
+            color: #1a365d;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        #shop-modal .shop-tabs { display: flex; gap: 6px; margin: 10px 0; border-bottom: 2px solid #d9c89a; }
+        #shop-modal .shop-tab {
+            background: transparent; border: none; padding: 8px 14px;
+            cursor: pointer; font-family: 'Newsreader', serif; font-size: 0.95rem;
+            color: #888; border-bottom: 3px solid transparent; margin-bottom: -2px;
+        }
+        #shop-modal .shop-tab.active { color: #1a365d; font-weight: 700; border-bottom-color: #f1c40f; }
+        #shop-modal .shop-content { overflow-y: auto; flex: 1; padding: 6px 2px; max-height: 50vh; }
+        #shop-modal .currency { background: #1a365d; color: #f1c40f; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.85rem; }
+        #shop-modal .purchase-btn {
+            width: 100%;
+            background: #16a085;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Fraunces', serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.15s;
+        }
+        #shop-modal .purchase-btn:hover { background: #1abc9c; }
+        #shop-modal .purchase-btn:disabled { background: #999; cursor: not-allowed; }
+        #shop-modal .pokedex-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px;
+        }
+        #shop-modal .pokedex-cell {
+            aspect-ratio: 1; border: 2px solid #d9c89a; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            background: #f3e6c0; font-size: 1.6rem; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #shop-modal .pokedex-cell:hover { transform: scale(1.08); border-color: #1a365d; }
+        #shop-modal .pokedex-cell.locked { color: #aaa; background: #ddd; }
+        #shop-modal .upgrades-soon { color: #777; text-align: center; padding: 30px 10px; font-style: italic; }
+        
+        /* Dock prompt floating in world */
+        .dock-hint-pill {
+            background: rgba(241, 196, 15, 0.95);
+            color: #1a365d;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 16px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+            font-family: 'Newsreader', serif;
+            font-size: 0.9rem;
+        }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Newsreader:wght@400;500&display=swap" rel="stylesheet">
 </head>
@@ -245,6 +375,34 @@
                 <button class="log-button" style="margin-top: 14px;" onclick="document.getElementById('captains-log').style.display='none';">Close</button>
             </div>
             <div id="toast" class="toast"></div>
+            
+            <!-- Pokedex-style unlock popup (used for both achievements and wildlife) -->
+            <div id="unlock-popup">
+                <div class="card">
+                    <div class="banner" id="unlock-banner">New Discovery!</div>
+                    <div class="icon" id="unlock-icon">🐬</div>
+                    <h2 id="unlock-title">Title</h2>
+                    <div class="subtitle" id="unlock-subtitle"></div>
+                    <div class="stat-row" id="unlock-stats"></div>
+                    <div class="body" id="unlock-body">Body text</div>
+                    <button class="log-button" style="margin-top:14px;" onclick="closeUnlockPopup();">Got it!</button>
+                </div>
+            </div>
+            
+            <!-- Shop modal -->
+            <div id="shop-modal">
+                <h2>
+                    <span>🏝 Trader Island</span>
+                    <span class="currency" id="shop-currency">∞ shells</span>
+                </h2>
+                <div style="font-size:0.85rem; color:#666; margin-bottom:6px;">Welcome aboard, captain. Browse the wares and we'll see if anything strikes your fancy.</div>
+                <div class="shop-tabs">
+                    <button class="shop-tab active" data-tab="wildlife" onclick="switchShopTab('wildlife')">🦀 Wildlife</button>
+                    <button class="shop-tab" data-tab="upgrades" onclick="switchShopTab('upgrades')">⛵ Ship Upgrades</button>
+                </div>
+                <div class="shop-content" id="shop-content"></div>
+                <button class="log-button" style="margin-top:10px;" onclick="closeShop();">Cast Off</button>
+            </div>
             <button id="debug-toggle-btn" onclick="event.stopPropagation(); toggleDebugPanel();">⚙ Tuning</button>
             <div id="debug-panel">
                 <h3>
@@ -397,6 +555,10 @@
         let lastMarkerPairId = -1;    // Avoid double-counting
         let markerPairCounter = 0;
         
+        // Trader islands
+        let nextTraderY = -1400;       // Spaced along the bay
+        let traderCounter = 0;
+        
         // Wind shift preview state
         let nextWindShiftFrame = 480; // First wind shift will happen at frame 480
         let windShiftPreviewActive = false;
@@ -407,6 +569,187 @@
         
         // Achievements (persisted)
         let unlockedAchievements = JSON.parse(localStorage.getItem('sail2learn_achievements') || '{}');
+        let unlockedWildlife = JSON.parse(localStorage.getItem('sail2learn_wildlife') || '{}');
+        let currentShopTab = 'wildlife';
+        let currentTraderIsland = null; // Reference to a trader entity if currently within docking radius
+        let lastDockedTraderId = -1; // Don't immediately re-trigger after closing
+        
+        // Sarasota Bay wildlife Pokédex
+        // Anthropology-derived - real species native to or commonly found in Sarasota Bay
+        const WILDLIFE_CATALOG = [
+            {
+                id: 'manatee', emoji: '🐄', commonName: 'Florida Manatee', latin: 'Trichechus manatus latirostris',
+                stats: ['~10 ft', '~1,000 lb', 'Herbivore'],
+                lore: 'Sarasota Bay is one of the most important year-round manatee habitats in Florida. These gentle "sea cows" graze on seagrass beds in shallow water and surface every 3-5 minutes to breathe. Local boaters watch carefully for their distinctive snouts at the surface — boat strikes remain their leading mortality cause.'
+            },
+            {
+                id: 'dolphin', emoji: '🐬', commonName: 'Bottlenose Dolphin', latin: 'Tursiops truncatus',
+                stats: ['~8-12 ft', '~500 lb', 'Top Predator'],
+                lore: 'The Sarasota Dolphin Research Program (run by the Chicago Zoological Society) has tracked the same resident dolphin community here since 1970 — the longest-running study of any wild dolphin population in the world. Many have personal names and tracked family lineages spanning five generations.'
+            },
+            {
+                id: 'pelican', emoji: '🦤', commonName: 'Brown Pelican', latin: 'Pelecanus occidentalis',
+                stats: ['~50 in wing', 'Plunge-diver', 'Resident'],
+                lore: 'A Florida success story. Pelicans were nearly wiped out by DDT in the 1970s but have rebounded dramatically; you\'ll see them gliding inches above the water in formation along the bay\'s causeways. They can plunge from 60 feet up and inflate throat air sacs to cushion the impact.'
+            },
+            {
+                id: 'snook', emoji: '🐟', commonName: 'Common Snook', latin: 'Centropomus undecimalis',
+                stats: ['~24-44 in', 'Ambush hunter', 'Game fish'],
+                lore: 'The state\'s most prized inshore game fish. Snook patrol the mangrove edges of Sarasota Bay where their distinctive black lateral line camouflages them against shadows. They\'re unusually cold-sensitive — a hard freeze in 2010 killed an estimated 90% of the local population, which has since rebounded.'
+            },
+            {
+                id: 'osprey', emoji: '🦅', commonName: 'Osprey', latin: 'Pandion haliaetus',
+                stats: ['~63 in wing', 'Fish specialist', 'Resident'],
+                lore: 'Locally called "fish hawks." Reversible outer toes and barbed footpads let them grip slippery fish that they\'ve plucked from the bay. Many of Sarasota\'s power line poles support active osprey nests — the same pair often returns to the same nest year after year.'
+            },
+            {
+                id: 'tarpon', emoji: '🐠', commonName: 'Atlantic Tarpon', latin: 'Megalops atlanticus',
+                stats: ['~4-8 ft', '~80-280 lb', 'Silver King'],
+                lore: 'The "Silver King" — fly-fishing\'s most coveted shallow-water trophy. Tarpon migrate through Sarasota Bay between May and July, often visible rolling at the surface to gulp atmospheric air through their primitive lungs. Anglers travel internationally to catch (and release) one.'
+            },
+            {
+                id: 'horseshoecrab', emoji: '🦀', commonName: 'Horseshoe Crab', latin: 'Limulus polyphemus',
+                stats: ['~450 mil yrs old', 'Living fossil', 'Spawner'],
+                lore: 'A living fossil older than dinosaurs. Their distinctive blue copper-based blood is harvested by biomedical labs to test injectable drugs for bacterial contamination — a single quart can be worth $15,000. Sarasota beaches host modest spring spawning aggregations under full moons.'
+            },
+            {
+                id: 'redfish', emoji: '🟥', commonName: 'Red Drum', latin: 'Sciaenops ocellatus',
+                stats: ['~24-40 in', 'School fish', 'Tailspot'],
+                lore: 'Easy to identify by the single (sometimes multiple) black tail spot — believed to confuse predators into attacking the wrong end. "Tailing redfish" in shallow water is one of saltwater fly-fishing\'s most iconic sights. They feed nose-down with tails breaking the surface.'
+            },
+            {
+                id: 'seagrass', emoji: '🌿', commonName: 'Turtle Grass', latin: 'Thalassia testudinum',
+                stats: ['Foundation', 'Carbon sink', 'Threatened'],
+                lore: 'Sarasota Bay\'s seagrass meadows are the foundation of the entire estuary food web — feeding manatees, sheltering juvenile fish, and storing more carbon per acre than tropical rainforest. Bay-wide monitoring tracks coverage annually; declines correlate strongly with watershed nitrogen loads.'
+            },
+            {
+                id: 'stingray', emoji: '🦑', commonName: 'Atlantic Stingray', latin: 'Hypanus sabinus',
+                stats: ['~10 in', 'Bottom-dweller', 'Sand-buried'],
+                lore: 'The most common ray in Sarasota Bay\'s shallow flats. Locals practice the "stingray shuffle" — sliding their feet along sandy bottoms to scare rays out of hiding rather than stepping on them. Their barbed tail is purely defensive; rays are not aggressive toward swimmers.'
+            },
+            {
+                id: 'spoonbill', emoji: '🦩', commonName: 'Roseate Spoonbill', latin: 'Platalea ajaja',
+                stats: ['~32 in', 'Filter feeder', 'Pink plumage'],
+                lore: 'Often mistaken for flamingos but actually closer relatives of ibises. Their distinctive flat spoon-shaped bills sweep side-to-side through shallow water to detect prey by touch. The pink color comes from carotenoids in the crustaceans they eat — same pigments that color flamingos.'
+            },
+            {
+                id: 'mangrove', emoji: '🌳', commonName: 'Red Mangrove', latin: 'Rhizophora mangle',
+                stats: ['Stilt roots', 'Salt filter', 'Nursery'],
+                lore: 'The "walking trees" of Sarasota Bay. Their iconic prop roots filter saltwater and create labyrinthine nurseries where 80% of the bay\'s commercial fish species spend their juvenile years. Florida law protects them; no waterfront homeowner can legally cut them without a permit.'
+            }
+        ];
+        let playerCurrency = Infinity; // Placeholder - will become real later
+        
+        function showUnlockPopup(opts) {
+            document.getElementById('unlock-banner').textContent = opts.banner || 'New Entry Unlocked!';
+            document.getElementById('unlock-icon').textContent = opts.icon || '✨';
+            document.getElementById('unlock-title').textContent = opts.title || '';
+            document.getElementById('unlock-subtitle').textContent = opts.subtitle || '';
+            document.getElementById('unlock-body').textContent = opts.body || '';
+            const stats = document.getElementById('unlock-stats');
+            stats.innerHTML = '';
+            (opts.stats || []).forEach(s => {
+                const el = document.createElement('div');
+                el.className = 'stat';
+                el.textContent = s;
+                stats.appendChild(el);
+            });
+            const popup = document.getElementById('unlock-popup');
+            popup.style.display = 'flex';
+            // Force reflow for animation restart
+            const card = popup.querySelector('.card');
+            card.style.animation = 'none';
+            void card.offsetWidth;
+            card.style.animation = '';
+        }
+        
+        function closeUnlockPopup() {
+            document.getElementById('unlock-popup').style.display = 'none';
+        }
+        
+        function openShop(traderId) {
+            currentTraderIsland = traderId;
+            lastDockedTraderId = traderId;
+            document.getElementById('shop-modal').style.display = 'flex';
+            renderShopTab();
+        }
+        
+        function closeShop() {
+            document.getElementById('shop-modal').style.display = 'none';
+            currentTraderIsland = null;
+        }
+        
+        function switchShopTab(tab) {
+            currentShopTab = tab;
+            document.querySelectorAll('.shop-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === tab);
+            });
+            renderShopTab();
+        }
+        
+        function renderShopTab() {
+            const c = document.getElementById('shop-content');
+            if (currentShopTab === 'wildlife') {
+                const totalEntries = WILDLIFE_CATALOG.length;
+                const unlockedCount = Object.keys(unlockedWildlife).length;
+                const remaining = totalEntries - unlockedCount;
+                let grid = '<div class="pokedex-grid">';
+                WILDLIFE_CATALOG.forEach(w => {
+                    if (unlockedWildlife[w.id]) {
+                        grid += `<div class="pokedex-cell" title="${w.commonName}" onclick="viewWildlife('${w.id}')">${w.emoji}</div>`;
+                    } else {
+                        grid += `<div class="pokedex-cell locked">?</div>`;
+                    }
+                });
+                grid += '</div>';
+                c.innerHTML = `
+                    <div style="margin-bottom:8px;"><b>Sarasota Bay Field Guide</b> — <span style="color:#16a085;">${unlockedCount} / ${totalEntries}</span> documented</div>
+                    ${grid}
+                    <p style="font-size:0.85rem; color:#444;">Each purchase commissions the trader to help you identify another local species. Click any unlocked entry to re-read it.</p>
+                    <button class="purchase-btn" onclick="purchaseWildlifeEntry()" ${remaining === 0 ? 'disabled' : ''}>
+                        ${remaining === 0 ? '✓ Field Guide Complete!' : `Discover a Species — Free (${remaining} remain)`}
+                    </button>
+                `;
+            } else if (currentShopTab === 'upgrades') {
+                c.innerHTML = `
+                    <div class="upgrades-soon">
+                        <div style="font-size:2.5rem; margin-bottom:8px;">⛵</div>
+                        <b>Ship Upgrades — Coming Soon</b>
+                        <p style="margin-top:8px; font-size:0.85rem;">Future captains will be able to outfit their vessel with faster hulls, larger sails, and weather charms here.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function viewWildlife(id) {
+            const w = WILDLIFE_CATALOG.find(x => x.id === id);
+            if (!w) return;
+            showUnlockPopup({
+                banner: 'Field Guide Entry',
+                icon: w.emoji,
+                title: w.commonName,
+                subtitle: w.latin,
+                stats: w.stats,
+                body: w.lore
+            });
+        }
+        
+        function purchaseWildlifeEntry() {
+            const locked = WILDLIFE_CATALOG.filter(w => !unlockedWildlife[w.id]);
+            if (locked.length === 0) return;
+            const pick = locked[Math.floor(Math.random() * locked.length)];
+            unlockedWildlife[pick.id] = { unlockedAt: Date.now() };
+            localStorage.setItem('sail2learn_wildlife', JSON.stringify(unlockedWildlife));
+            showUnlockPopup({
+                banner: 'Wildlife Discovered!',
+                icon: pick.emoji,
+                title: pick.commonName,
+                subtitle: pick.latin,
+                stats: pick.stats,
+                body: pick.lore
+            });
+            renderShopTab();
+        }
         
         // Lore catalog. Each unlocks via a specific achievement key.
         const LORE_CATALOG = [
@@ -456,7 +799,14 @@
             if (!lore) return false;
             unlockedAchievements[key] = { unlockedAt: Date.now() };
             localStorage.setItem('sail2learn_achievements', JSON.stringify(unlockedAchievements));
-            showToast(`🏆 ${lore.title} Unlocked!`, lore.lore.length > 140 ? lore.lore.slice(0, 140) + '… (View in Captain\'s Log)' : lore.lore, 5000);
+            showUnlockPopup({
+                banner: '🏆 Achievement Unlocked',
+                icon: '🏆',
+                title: lore.title,
+                subtitle: lore.requirement,
+                stats: [],
+                body: lore.lore
+            });
             return true;
         }
         
@@ -508,6 +858,10 @@
             markerStreak = 0;
             lastMarkerPairId = -1;
             markerPairCounter = 0;
+            nextTraderY = -1400;
+            traderCounter = 0;
+            currentTraderIsland = null;
+            lastDockedTraderId = -1;
             nextWindShiftFrame = 480;
             windShiftPreviewActive = false;
             lastInIronsEndFrame = -9999;
@@ -889,10 +1243,34 @@
                 ctx.translate(e.x, e.y);
                 
                 if (e.type === 'obstacle') {
+                    // Red danger ring pulses to make these unambiguously dangerous
+                    let pulse = 0.8 + 0.2 * Math.sin(Date.now() / 250 + e.x * 0.01);
+                    ctx.strokeStyle = `rgba(231, 76, 60, ${pulse})`;
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([4, 4]);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Soft red haze underneath
+                    let grad = ctx.createRadialGradient(0, 0, 4, 0, 0, 22);
+                    grad.addColorStop(0, 'rgba(231, 76, 60, 0.35)');
+                    grad.addColorStop(1, 'rgba(231, 76, 60, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // The actual icon
                     ctx.font = '26px sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(e.icon, 0, 2);
+                    
+                    // Tiny ⚠ badge in upper-right
+                    ctx.font = '12px sans-serif';
+                    ctx.fillText('⚠', 14, -12);
                 } else if (e.type === 'puff') {
                     ctx.save();
                     ctx.rotate(windDir - Math.PI / 2); // Align puff with the wind direction (windDir is the angle the wind is blowing towards)
@@ -1045,6 +1423,71 @@
                     ctx.lineTo(e.gateHalfWidth, 0);
                     ctx.stroke();
                     ctx.setLineDash([]);
+                } else if (e.type === 'trader') {
+                    // Compute distance to player to highlight when in dock range
+                    let tdx = e.x - boat.x;
+                    let tdy = e.y - boat.y;
+                    let tdist = Math.sqrt(tdx*tdx + tdy*tdy);
+                    let inRange = tdist < 110;
+                    
+                    // Docking radius indicator
+                    let r = 110;
+                    let pulseR = inRange ? r + Math.sin(Date.now()/200)*4 : r;
+                    ctx.strokeStyle = inRange ? 'rgba(241, 196, 15, 0.85)' : 'rgba(241, 196, 15, 0.35)';
+                    ctx.lineWidth = inRange ? 3 : 1.5;
+                    ctx.setLineDash([8, 8]);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, pulseR, 0, Math.PI*2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Sand circle (the island itself)
+                    ctx.fillStyle = '#e6c280';
+                    ctx.strokeStyle = '#c2a15f';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 38, 0, Math.PI*2);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Palm tree
+                    ctx.fillStyle = '#8b5a2b';
+                    ctx.fillRect(-2, -10, 4, 18);
+                    ctx.fillStyle = '#27ae60';
+                    for (let i = 0; i < 5; i++) {
+                        let a = (i / 5) * Math.PI * 2 - Math.PI/2;
+                        ctx.save();
+                        ctx.translate(0, -10);
+                        ctx.rotate(a);
+                        ctx.beginPath();
+                        ctx.ellipse(8, 0, 8, 3, 0, 0, Math.PI*2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                    
+                    // Trader hut
+                    ctx.fillStyle = '#c0392b';
+                    ctx.beginPath();
+                    ctx.moveTo(-12, -2);
+                    ctx.lineTo(-12, 6);
+                    ctx.lineTo(0, 6);
+                    ctx.lineTo(0, -2);
+                    ctx.lineTo(-6, -8);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#1a365d';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    
+                    // Banner / dock prompt floating above
+                    ctx.font = 'bold 12px Newsreader';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = inRange ? '#16a085' : '#1a365d';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+                    ctx.lineWidth = 4;
+                    let label = inRange ? '⚓ Docking…' : '🏝 Trader Island';
+                    ctx.strokeText(label, 0, -50);
+                    ctx.fillText(label, 0, -50);
                 }
                 
                 ctx.restore();
@@ -1254,7 +1697,7 @@
                 let pairId = markerPairCounter;
                 // Center the gate roughly mid-bay with slight wander
                 let centerX = 1000 + Math.sin(nextMarkerY * 0.003) * 250;
-                let gateHalfWidth = 180;
+                let gateHalfWidth = 540; // Tripled (was 180) for a much wider, fairer gate
                 entities.push({
                     type: 'marker', side: 'red',
                     x: centerX + gateHalfWidth, y: nextMarkerY,
@@ -1271,6 +1714,24 @@
                     active: true, triggered: false
                 });
                 nextMarkerY -= 600;
+            }
+            
+            // Trader Islands: spawn periodically along one of the shores
+            while (boat.y - 1200 < nextTraderY) {
+                traderCounter++;
+                let onLeft = (traderCounter % 2 === 0); // Alternate sides for variety
+                let shoreX = getShoreline(nextTraderY, onLeft);
+                // Plant the island just inside the shore so player can dock without grounding
+                let traderX = onLeft ? shoreX + 90 : shoreX - 90;
+                entities.push({
+                    type: 'trader',
+                    traderId: traderCounter,
+                    x: traderX,
+                    y: nextTraderY,
+                    active: true,
+                    onLeft: onLeft
+                });
+                nextTraderY -= 1400;
             }
             if (Math.random() < 0.003) { // Other boat spawning - increased by 20%
                 let spawnLeft = Math.random() > 0.5;
@@ -1394,6 +1855,23 @@
                 
                 if (e.type === 'marker' || e.type === 'gate') continue; // No physical collision
                 
+                // Trader island docking detection
+                if (e.type === 'trader' && e.active) {
+                    let tdx = e.x - boat.x;
+                    let tdy = e.y - boat.y;
+                    let tdist = Math.sqrt(tdx*tdx + tdy*tdy);
+                    let dockRadius = 110;
+                    if (tdist < dockRadius && lastDockedTraderId !== e.traderId && document.getElementById('shop-modal').style.display !== 'flex') {
+                        // Auto-open shop on dock
+                        openShop(e.traderId);
+                    }
+                    if (tdist > dockRadius * 1.6 && lastDockedTraderId === e.traderId) {
+                        // Far away — allow re-docking on next pass
+                        lastDockedTraderId = -1;
+                    }
+                    continue; // Don't crash into traders, they're friendly
+                }
+                
                 if (e.active) {
                     let dx = e.x - boat.x;
                     let dy = e.y - boat.y;
@@ -1508,10 +1986,21 @@
             if (e.type === 'keydown' && e.code !== 'Space') return;
             if (e.type === 'keydown') e.preventDefault(); 
             
-            // Don't restart the game if the Captain's Log is open
+            // Don't restart the game if a modal is open
             if (document.getElementById('captains-log').style.display === 'block') return;
-            // Don't tack/restart if interaction came from inside the debug panel
-            if (e.target && (e.target.closest && (e.target.closest('#debug-panel') || e.target.closest('#debug-toggle-btn')))) return;
+            const shop = document.getElementById('shop-modal');
+            if (shop && shop.style.display === 'block') return;
+            const popup = document.getElementById('unlock-popup');
+            if (popup && popup.style.display === 'flex') return;
+            // Don't tack/restart if interaction came from any button or panel
+            if (e.target && e.target.closest && (
+                e.target.closest('button') ||
+                e.target.closest('#debug-panel') ||
+                e.target.closest('#captains-log') ||
+                e.target.closest('#shop-modal') ||
+                e.target.closest('#unlock-popup') ||
+                e.target.closest('#debug-toggle-btn')
+            )) return;
 
             if (gameState === 'start' || gameState === 'gameover') {
                 resetGame();
@@ -1530,6 +2019,16 @@
         draw(); 
         loop();
         initTuningPanel();
+        
+        // Expose UI handlers to inline onclick handlers
+        window.toggleDebugPanel = toggleDebugPanel;
+        window.renderCaptainsLog = renderCaptainsLog;
+        window.closeUnlockPopup = closeUnlockPopup;
+        window.openShop = openShop;
+        window.closeShop = closeShop;
+        window.switchShopTab = switchShopTab;
+        window.purchaseWildlifeEntry = purchaseWildlifeEntry;
+        window.viewWildlife = viewWildlife;
     </script>
 </body>
 </html>
