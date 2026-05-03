@@ -43,13 +43,19 @@
             pointer-events: none;
             z-index: 0;
             overflow: hidden;
+            /* Gradient: warm sunset only in the upper third, cooling into
+               atmospheric blue/haze for the lower two-thirds where the skyline
+               sits. This prevents the "yellow band behind the skyline" effect. */
             background: linear-gradient(
                 to bottom,
                 #ffd9b3 0%,        /* sunset peach top */
-                #ffc189 25%,
-                #ffb38a 55%,
-                #f6c990 80%,        /* warm horizon haze */
-                #afd6e8 100%        /* atmospheric blue blending into water */
+                #ffc189 14%,
+                #ffb38a 26%,
+                #ecb89c 40%,        /* warm-to-cool transition */
+                #cdb9aa 55%,        /* dusty atmospheric */
+                #b6c4c5 70%,        /* cool gray-blue haze */
+                #afd6e8 90%,        /* atmospheric blue */
+                #99c8df 100%        /* deeper haze blending into water */
             );
         }
         #horizon-layer .sun {
@@ -76,17 +82,18 @@
             -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.4) 85%, transparent 100%);
             mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.4) 85%, transparent 100%);
         }
-        /* Stronger horizon haze right at the seam masks any minor pixel mismatch
-           between the skyline base and the apparent water line. */
+        /* Horizon haze right at the seam, color-matched to the cool atmospheric
+           blue at the bottom of the horizon gradient so it doesn't introduce
+           any jarring warm tones near the skyline base. */
         #horizon-layer .horizon-haze {
             position: absolute;
             left: -5%; right: -5%;
             bottom: -18px;
             height: 38px;
             background: linear-gradient(to bottom,
-                rgba(255, 220, 180, 0) 0%,
-                rgba(255, 220, 180, 0.85) 50%,
-                rgba(255, 220, 180, 0) 100%);
+                rgba(180, 200, 215, 0) 0%,
+                rgba(200, 215, 225, 0.75) 50%,
+                rgba(180, 200, 215, 0) 100%);
             pointer-events: none;
             filter: blur(7px);
             z-index: 2;
@@ -232,16 +239,17 @@
         }
         body.flat-view #horizon-layer { display: none; }
         
-        /* Atmospheric haze - soft white fade at top of canvas to suggest distance */
+        /* Atmospheric haze - cool blue-gray fade at top of canvas to harmonize
+           with the bottom of the horizon gradient and sell depth. */
         #atmosphere-fade {
             position: absolute;
             top: 0; left: 0; right: 0;
             height: 30%;
             pointer-events: none;
             background: linear-gradient(to bottom,
-                rgba(255, 230, 200, 0.35) 0%,
-                rgba(255, 230, 200, 0.12) 50%,
-                rgba(255, 230, 200, 0) 100%);
+                rgba(190, 210, 225, 0.4) 0%,
+                rgba(195, 215, 230, 0.15) 50%,
+                rgba(200, 220, 235, 0) 100%);
             z-index: 2;
         }
         #canvas {
@@ -1225,15 +1233,15 @@
         
         // Draws a screen-space fog/haze gradient on top of the world to fade
         // the upper portion (which is "far away" in our perspective) into the
-        // sky-colored horizon. This sells the depth illusion massively.
+        // sky-colored horizon. Uses cool atmospheric blue-gray to harmonize
+        // with the bottom of the HTML horizon-layer gradient.
         function drawAtmosphericFog() {
-            // Top fog band: warm haze fading the distant land into sky
-            let fogHeight = canvas.height * 0.45;
+            let fogHeight = canvas.height * 0.42;
             let grad = ctx.createLinearGradient(0, 0, 0, fogHeight);
-            grad.addColorStop(0,    'rgba(255, 213, 165, 0.95)'); // sky color
-            grad.addColorStop(0.4,  'rgba(255, 213, 165, 0.55)');
-            grad.addColorStop(0.75, 'rgba(255, 213, 165, 0.18)');
-            grad.addColorStop(1,    'rgba(255, 213, 165, 0)');
+            grad.addColorStop(0,    'rgba(200, 215, 225, 0.95)'); // matches horizon bottom
+            grad.addColorStop(0.4,  'rgba(195, 215, 230, 0.55)');
+            grad.addColorStop(0.75, 'rgba(190, 215, 235, 0.18)');
+            grad.addColorStop(1,    'rgba(180, 215, 240, 0)');
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, canvas.width, fogHeight);
         }
@@ -1741,6 +1749,43 @@
                     ctx.lineTo(e.gateHalfWidth, 0);
                     ctx.stroke();
                     ctx.setLineDash([]);
+                } else if (e.type === 'flybird') {
+                    // Distance from the camera's top edge in canvas-y space.
+                    // Birds near the top of the canvas (= horizon) render small,
+                    // semi-transparent. As they descend toward the boat they grow
+                    // and crisp up - selling the cross-layer flight path.
+                    let canvasY = e.y - camera.y;
+                    let progress = Math.max(0, Math.min(1, canvasY / canvas.height));
+                    let alpha = 0.45 + progress * 0.5;
+                    let baseSize = e.subtype === 'osprey' ? 18 : (e.subtype === 'pelican' ? 11 : 13);
+                    let size = baseSize * (0.55 + progress * 0.7);
+                    let flap = Math.sin(e.flapPhase);
+                    let wingY = flap * 0.5; // verticality of wing flap
+                    
+                    ctx.globalAlpha = alpha;
+                    ctx.strokeStyle = e.subtype === 'osprey' ? '#6b4226' : '#2c3e50';
+                    ctx.lineWidth = Math.max(1.2, size * 0.12);
+                    ctx.lineCap = 'round';
+                    
+                    // Hand-drawn "M" wing shape that flaps
+                    let span = size;
+                    let dip = size * (0.35 - 0.25 * flap); // wings flap from up to down
+                    let dir = e.vx > 0 ? 1 : -1; // flip facing direction
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(-span * dir, wingY);
+                    ctx.quadraticCurveTo(-span * 0.5 * dir, wingY - dip, 0, wingY);
+                    ctx.quadraticCurveTo(span * 0.5 * dir, wingY - dip, span * dir, wingY);
+                    ctx.stroke();
+                    
+                    // Subtle body dot for closer birds
+                    if (progress > 0.3) {
+                        ctx.fillStyle = e.subtype === 'osprey' ? '#6b4226' : '#2c3e50';
+                        ctx.beginPath();
+                        ctx.arc(0, wingY, Math.max(1, size * 0.12), 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.globalAlpha = 1;
                 } else if (e.type === 'trader') {
                     // Compute distance to player to highlight when in dock range
                     let tdx = e.x - boat.x;
@@ -2057,6 +2102,70 @@
                 });
                 nextTraderY -= 1400;
             }
+            
+            // Canvas-layer birds that cross between the horizon and gameplay layers.
+            // These spawn far above the camera (so they appear as tiny dots near the
+            // horizon) and slowly drift downward and across, growing as they approach
+            // the player and eventually flying past and off-screen below.
+            if (Math.random() < 0.004) {
+                let kind = Math.random();
+                let fromLeft = Math.random() < 0.5;
+                let startX = fromLeft
+                    ? camera.x - 60
+                    : camera.x + canvas.width + 60;
+                // Spawn well above the camera so they emerge from the horizon
+                let startY = camera.y + 40 + Math.random() * 80;
+                let speed = 0.8 + Math.random() * 0.6;
+                let descent = 0.18 + Math.random() * 0.25; // gentle downward drift
+                
+                if (kind < 0.5) {
+                    // Single gull
+                    entities.push({
+                        type: 'flybird',
+                        subtype: 'gull',
+                        x: startX,
+                        y: startY,
+                        vx: fromLeft ? speed : -speed,
+                        vy: descent,
+                        flapPhase: Math.random() * Math.PI * 2,
+                        active: true
+                    });
+                } else if (kind < 0.85) {
+                    // V-formation pelican flock (4-7 birds, staggered)
+                    let count = 4 + Math.floor(Math.random() * 4);
+                    let dir = fromLeft ? 1 : -1;
+                    for (let i = 0; i < count; i++) {
+                        // V shape: leader at center-front, others fanned back
+                        let row = Math.floor(i / 2);
+                        let side = (i % 2 === 0) ? 1 : -1;
+                        let offX = -dir * row * 18;
+                        let offY = row * 9 * (i === 0 ? 0 : 1);
+                        if (i > 0) offX += side * row * 3;
+                        entities.push({
+                            type: 'flybird',
+                            subtype: 'pelican',
+                            x: startX + offX,
+                            y: startY + offY,
+                            vx: dir * speed * 0.85,
+                            vy: descent * 0.8,
+                            flapPhase: i * 0.4 + Math.random() * 0.3,
+                            active: true
+                        });
+                    }
+                } else {
+                    // Lone osprey, larger, browner, slower
+                    entities.push({
+                        type: 'flybird',
+                        subtype: 'osprey',
+                        x: startX,
+                        y: startY,
+                        vx: fromLeft ? speed * 0.65 : -speed * 0.65,
+                        vy: descent * 0.6,
+                        flapPhase: Math.random() * Math.PI * 2,
+                        active: true
+                    });
+                }
+            }
             if (Math.random() < 0.003) { // Other boat spawning - increased by 20%
                 let spawnLeft = Math.random() > 0.5;
                 // Spawn near the shoreline
@@ -2120,6 +2229,15 @@
                     // Despawn when off-screen far enough
                     if (e.x < camera.x - 200 || e.x > camera.x + canvas.width + 200) e.active = false;
                 }
+                
+                if (e.type === 'flybird' && e.active) {
+                    e.x += e.vx;
+                    e.y += e.vy;
+                    e.flapPhase += 0.22;
+                    // Despawn once they've drifted far below or past the camera
+                    if (e.y > camera.y + canvas.height + 80) e.active = false;
+                    if (e.x < camera.x - 200 || e.x > camera.x + canvas.width + 200) e.active = false;
+                }
 
                 if (e.type === 'puff' && e.active) {
                     let windSpeed = 3.0; // Puffs move faster than boat
@@ -2178,6 +2296,7 @@
                 }
                 
                 if (e.type === 'marker' || e.type === 'gate') continue; // No physical collision
+                if (e.type === 'flybird') continue; // Birds are pure ambiance, no collision
                 
                 // Trader island docking detection
                 if (e.type === 'trader' && e.active) {
