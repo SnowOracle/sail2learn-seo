@@ -25,13 +25,130 @@
             border: 4px solid #1a365d;
             border-radius: 8px;
             overflow: hidden;
-            background-color: #4da6ff; /* vibrant water color */
+            background-color: #4da6ff; /* vibrant water color (fallback) */
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            perspective: 1100px;        /* depth perspective for the world */
+            perspective-origin: 50% 90%; /* viewer is roughly behind/above the boat */
+        }
+        
+        /* The horizon layer sits behind the canvas, in HTML so it stays sharp */
+        #horizon-layer {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 38%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+            background: linear-gradient(
+                to bottom,
+                #ffd9b3 0%,        /* sunset peach top */
+                #ffc189 18%,
+                #ffb38a 35%,
+                #f6c990 55%,        /* warm horizon haze */
+                #afd6e8 78%,        /* atmospheric blue */
+                #4da6ff 100%        /* matches water */
+            );
+        }
+        #horizon-layer .sun {
+            position: absolute;
+            top: 36%; left: 70%;
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff5c2 0%, #ffd569 55%, rgba(255,200,100,0) 75%);
+            box-shadow: 0 0 60px 20px rgba(255, 200, 130, 0.4);
+        }
+        #horizon-layer .skyline {
+            position: absolute;
+            bottom: 12%;
+            left: 0; right: 0;
+            height: 38%;
+            background-image:
+                /* downtown Sarasota silhouette - simplified building shapes via radial/linear gradients */
+                linear-gradient(to top,
+                    rgba(50, 80, 110, 0.55) 0%,
+                    rgba(50, 80, 110, 0.55) 60%,
+                    rgba(50, 80, 110, 0) 100%);
+            mask-image: linear-gradient(to top, #000 60%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to top, #000 60%, transparent 100%);
+        }
+        /* Hand-drawn skyline using SVG data URI for that signature Sarasota look */
+        #horizon-layer .skyline-svg {
+            position: absolute;
+            left: -5%; right: -5%; bottom: 8%;
+            width: 110%;
+            height: 60px;
+            opacity: 0.55;
+        }
+        #horizon-layer .clouds {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 30%;
+            pointer-events: none;
+        }
+        #horizon-layer .cloud {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 60px;
+            filter: blur(2px);
+            animation: drift linear infinite;
+        }
+        #horizon-layer .cloud::before,
+        #horizon-layer .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+        }
+        #horizon-layer .cloud::before { width: 60%; height: 140%; left: 10%; top: -40%; }
+        #horizon-layer .cloud::after  { width: 50%; height: 130%; right: 8%; top: -25%; }
+        @keyframes drift {
+            from { transform: translateX(-120%); }
+            to   { transform: translateX(120%); }
+        }
+        /* Distant tiny sailboats on the horizon */
+        #horizon-layer .far-sail {
+            position: absolute;
+            width: 0; height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 10px solid rgba(255, 255, 255, 0.8);
+            animation: drift-far linear infinite;
+            filter: drop-shadow(0 1px 0 rgba(0,0,0,0.2));
+        }
+        @keyframes drift-far {
+            from { transform: translateX(-120%); }
+            to   { transform: translateX(120%); }
+        }
+        
+        /* The canvas now lives inside a tilted "world stage" */
+        #world-stage {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            transform-style: preserve-3d;
+            transform: rotateX(18deg) translateZ(0);
+            transform-origin: 50% 100%;
+            z-index: 1;
+        }
+        body.flat-view #world-stage { transform: none; }
+        body.flat-view #horizon-layer { display: none; }
+        
+        /* Atmospheric haze - soft white fade at top of canvas to suggest distance */
+        #atmosphere-fade {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 30%;
+            pointer-events: none;
+            background: linear-gradient(to bottom,
+                rgba(255, 230, 200, 0.35) 0%,
+                rgba(255, 230, 200, 0.12) 50%,
+                rgba(255, 230, 200, 0) 100%);
+            z-index: 2;
         }
         #canvas {
             display: block;
             width: 100%;
             height: 100%;
+            position: relative;
+            z-index: 1;
         }
         
         #ui-layer {
@@ -347,7 +464,26 @@
 <body>
 
     <div id="game-container">
-        <canvas id="canvas"></canvas>
+        <div id="horizon-layer">
+            <div class="sun"></div>
+            <div class="clouds">
+                <div class="cloud" style="top: 18%; width: 90px; height: 18px; animation-duration: 70s; animation-delay: -20s;"></div>
+                <div class="cloud" style="top: 32%; width: 130px; height: 22px; animation-duration: 95s; animation-delay: -50s;"></div>
+                <div class="cloud" style="top: 8%;  width: 70px;  height: 14px; animation-duration: 55s; animation-delay: -10s;"></div>
+                <div class="cloud" style="top: 48%; width: 110px; height: 20px; animation-duration: 85s; animation-delay: -65s;"></div>
+                <div class="far-sail" style="top: 70%; animation-duration: 220s; animation-delay: -30s;"></div>
+                <div class="far-sail" style="top: 73%; animation-duration: 280s; animation-delay: -110s;"></div>
+                <div class="far-sail" style="top: 67%; animation-duration: 250s; animation-delay: -180s;"></div>
+            </div>
+            <svg class="skyline-svg" viewBox="0 0 800 60" preserveAspectRatio="none">
+                <!-- Stylized Sarasota skyline silhouette -->
+                <path d="M0,60 L0,40 L25,40 L28,30 L35,30 L38,40 L60,40 L60,28 L80,28 L80,40 L100,40 L100,32 L130,32 L130,38 L160,38 L165,22 L175,22 L180,38 L210,38 L215,15 L225,15 L230,38 L260,38 L260,30 L290,30 L295,18 L310,18 L315,30 L345,30 L345,40 L380,40 L380,12 L390,12 L395,4 L405,4 L410,12 L420,12 L420,40 L455,40 L455,32 L490,32 L495,20 L510,20 L515,32 L555,32 L555,40 L590,40 L590,26 L620,26 L625,16 L640,16 L645,26 L680,26 L680,40 L720,40 L725,30 L760,30 L763,38 L800,38 L800,60 Z" fill="#33526b"/>
+            </svg>
+        </div>
+        <div id="world-stage">
+            <canvas id="canvas"></canvas>
+        </div>
+        <div id="atmosphere-fade"></div>
         <div id="ui-layer">
             <div id="start-screen" class="message">
                 <h1>Tack the Bay</h1>
@@ -436,6 +572,16 @@
                 <div class="row"><input type="range" id="t-rec" min="1.0" max="2.0" step="0.05" value="1.25"></div>
                 
                 <button id="reset-tuning" style="margin-top:10px; width:100%; background:#1a365d; color:#fff; border:none; border-radius:4px; padding:6px; cursor:pointer; font-family:'Newsreader',serif;">Reset to Tightened Defaults</button>
+                
+                <hr style="margin:10px 0; border:none; border-top:1px solid #d9c89a;">
+                <label style="display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" id="t-flat" onchange="document.body.classList.toggle('flat-view', this.checked);">
+                    Flat (top-down) view
+                </label>
+                <label style="display:block; margin-top:6px;">
+                    Perspective tilt <span class="val" id="val-tilt">18°</span>
+                </label>
+                <div class="row"><input type="range" id="t-tilt" min="0" max="35" step="1" value="18" oninput="document.getElementById('val-tilt').textContent = this.value+'°'; document.querySelector('#world-stage').style.transform = 'rotateX('+this.value+'deg) translateZ(0)';"></div>
             </div>
         </div>
     </div>
