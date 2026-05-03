@@ -137,6 +137,80 @@
         }
         .toast.show { opacity: 1; }
         .toast .toast-title { font-family: 'Fraunces', serif; font-weight: bold; color: #f1c40f; margin-bottom: 2px; }
+        
+        #debug-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 248, 231, 0.96);
+            border: 2px solid #1a365d;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: 'Newsreader', serif;
+            font-size: 0.82rem;
+            color: #1a365d;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            z-index: 6;
+            min-width: 220px;
+            display: none;
+        }
+        #debug-panel.visible { display: block; }
+        #debug-panel h3 {
+            margin: 0 0 8px;
+            font-family: 'Fraunces', serif;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #debug-panel h3 button {
+            background: transparent;
+            border: 1px solid #1a365d;
+            color: #1a365d;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+        #debug-panel label {
+            display: block;
+            margin: 6px 0 1px;
+            font-weight: 600;
+        }
+        #debug-panel .row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #debug-panel input[type="range"] {
+            flex: 1;
+            margin: 0;
+        }
+        #debug-panel .val {
+            min-width: 38px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #c0392b;
+        }
+        #debug-toggle-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 5;
+            background: rgba(26, 54, 93, 0.85);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-family: 'Newsreader', serif;
+            font-size: 0.75rem;
+            cursor: pointer;
+            pointer-events: auto;
+            opacity: 0.7;
+        }
+        #debug-toggle-btn:hover { opacity: 1; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Newsreader:wght@400;500&display=swap" rel="stylesheet">
 </head>
@@ -171,6 +245,40 @@
                 <button class="log-button" style="margin-top: 14px;" onclick="document.getElementById('captains-log').style.display='none';">Close</button>
             </div>
             <div id="toast" class="toast"></div>
+            <button id="debug-toggle-btn" onclick="event.stopPropagation(); toggleDebugPanel();">⚙ Tuning</button>
+            <div id="debug-panel">
+                <h3>
+                    Speed Tuning
+                    <button onclick="event.stopPropagation(); toggleDebugPanel();">hide</button>
+                </h3>
+                <label>Base Speed <span class="val" id="val-base">1.20</span></label>
+                <div class="row"><input type="range" id="t-base" min="0.6" max="1.6" step="0.05" value="1.0"></div>
+                
+                <label>In Irons <span class="val" id="val-irons">0.18</span></label>
+                <div class="row"><input type="range" id="t-irons" min="0.05" max="0.6" step="0.01" value="0.32"></div>
+                
+                <label>Close-Hauled <span class="val" id="val-close">1.20</span></label>
+                <div class="row"><input type="range" id="t-close" min="0.6" max="1.5" step="0.05" value="1.0"></div>
+                
+                <label>Beam Reach (top) <span class="val" id="val-beam">1.90</span></label>
+                <div class="row"><input type="range" id="t-beam" min="0.8" max="2.2" step="0.05" value="1.45"></div>
+                
+                <label>Running <span class="val" id="val-run">1.30</span></label>
+                <div class="row"><input type="range" id="t-run" min="0.6" max="1.8" step="0.05" value="1.15"></div>
+                
+                <hr style="margin:10px 0; border:none; border-top:1px solid #d9c89a;">
+                
+                <label>Puff Multiplier <span class="val" id="val-puff">2.20</span></label>
+                <div class="row"><input type="range" id="t-puff" min="1.0" max="3.0" step="0.05" value="1.5"></div>
+                
+                <label>Star Jump Multiplier <span class="val" id="val-jump">1.80</span></label>
+                <div class="row"><input type="range" id="t-jump" min="1.0" max="2.5" step="0.05" value="1.3"></div>
+                
+                <label>Recovery Multiplier <span class="val" id="val-rec">1.50</span></label>
+                <div class="row"><input type="range" id="t-rec" min="1.0" max="2.0" step="0.05" value="1.25"></div>
+                
+                <button id="reset-tuning" style="margin-top:10px; width:100%; background:#1a365d; color:#fff; border:none; border-radius:4px; padding:6px; cursor:pointer; font-family:'Newsreader',serif;">Reset to Tightened Defaults</button>
+            </div>
         </div>
     </div>
     
@@ -219,6 +327,61 @@
         };
 
         let bestScore = localStorage.getItem('sail2learn_best_score') || 0;
+        
+        // Speed tuning - tightened range so the player feels more in control
+        // Top speed reduced, in-irons sped up, multipliers softened
+        const DEFAULT_TUNING = {
+            base: 1.0,
+            irons: 0.32,
+            close: 1.0,
+            beam: 1.45,
+            run: 1.15,
+            puff: 1.5,
+            jump: 1.3,
+            rec: 1.25
+        };
+        let tuning = Object.assign({}, DEFAULT_TUNING);
+        
+        function bindTuningSlider(id, key, fmt) {
+            const slider = document.getElementById(id);
+            const label = document.getElementById('val-' + key);
+            slider.value = tuning[key];
+            label.textContent = (+slider.value).toFixed(2);
+            slider.addEventListener('input', () => {
+                tuning[key] = +slider.value;
+                label.textContent = (+slider.value).toFixed(2);
+            });
+        }
+        
+        function initTuningPanel() {
+            bindTuningSlider('t-base', 'base');
+            bindTuningSlider('t-irons', 'irons');
+            bindTuningSlider('t-close', 'close');
+            bindTuningSlider('t-beam', 'beam');
+            bindTuningSlider('t-run', 'run');
+            bindTuningSlider('t-puff', 'puff');
+            bindTuningSlider('t-jump', 'jump');
+            bindTuningSlider('t-rec', 'rec');
+            document.getElementById('reset-tuning').addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                tuning = Object.assign({}, DEFAULT_TUNING);
+                bindTuningSlider('t-base', 'base');
+                bindTuningSlider('t-irons', 'irons');
+                bindTuningSlider('t-close', 'close');
+                bindTuningSlider('t-beam', 'beam');
+                bindTuningSlider('t-run', 'run');
+                bindTuningSlider('t-puff', 'puff');
+                bindTuningSlider('t-jump', 'jump');
+                bindTuningSlider('t-rec', 'rec');
+            });
+        }
+        
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debug-panel');
+            const btn = document.getElementById('debug-toggle-btn');
+            const visible = panel.classList.toggle('visible');
+            btn.style.display = visible ? 'none' : 'block';
+        }
         
         let entities = [];
         let inIrons = false;
@@ -914,10 +1077,10 @@
             let wasInIrons = inIrons;
             inIrons = false;
             
-            if (twa < 0.5) { eff = 0.18; inIrons = true; } 
-            else if (twa < 0.9) eff = 1.2; 
-            else if (twa < 1.8) eff = 1.9; 
-            else eff = 1.3; 
+            if (twa < 0.5) { eff = tuning.irons; inIrons = true; } 
+            else if (twa < 0.9) eff = tuning.close; 
+            else if (twa < 1.8) eff = tuning.beam; 
+            else eff = tuning.run; 
 
             if (inIrons) {
                 if (!wasInIrons) lastInIronsStartFrame = frameCount;
@@ -951,7 +1114,7 @@
             }
             
             if (boat.recoveryBoost > 0) {
-                eff *= 1.5;
+                eff *= tuning.rec;
                 boat.recoveryBoost--;
             }
 
@@ -960,12 +1123,12 @@
                 boat.slowTimer--;
             }
             if (boat.puffTimer > 0) {
-                eff *= 2.2; // Increased speed buff
+                eff *= tuning.puff;
                 boat.puffTimer--;
             }
 
             if (boat.jump > 0) {
-                eff *= 1.8; 
+                eff *= tuning.jump; 
                 boat.jump -= 0.04;
                 if (boat.jump < 0) boat.jump = 0;
             }
@@ -974,7 +1137,7 @@
                 if (boat.spin < 0) boat.spin = 0;
             }
 
-            let baseSpeed = 1.2; 
+            let baseSpeed = tuning.base; 
             let speed = baseSpeed * eff;
             let moveY = Math.sin(boat.angle) * speed;
             boat.x += Math.cos(boat.angle) * speed;
@@ -1196,10 +1359,10 @@
 
                     let twaNPC = getTWA(windDir, e.angle);
                     let effNPC = 1.0;
-                    if (twaNPC < 0.5) effNPC = 0.18; 
-                    else if (twaNPC < 0.9) effNPC = 1.2;
-                    else if (twaNPC < 1.8) effNPC = 1.9;
-                    else effNPC = 1.3;
+                    if (twaNPC < 0.5) effNPC = tuning.irons; 
+                    else if (twaNPC < 0.9) effNPC = tuning.close;
+                    else if (twaNPC < 1.8) effNPC = tuning.beam;
+                    else effNPC = tuning.run;
 
                     let moveSpeed = e.speed * effNPC;
                     e.x += Math.cos(e.angle) * moveSpeed;
@@ -1347,6 +1510,8 @@
             
             // Don't restart the game if the Captain's Log is open
             if (document.getElementById('captains-log').style.display === 'block') return;
+            // Don't tack/restart if interaction came from inside the debug panel
+            if (e.target && (e.target.closest && (e.target.closest('#debug-panel') || e.target.closest('#debug-toggle-btn')))) return;
 
             if (gameState === 'start' || gameState === 'gameover') {
                 resetGame();
@@ -1364,6 +1529,7 @@
 
         draw(); 
         loop();
+        initTuningPanel();
     </script>
 </body>
 </html>
