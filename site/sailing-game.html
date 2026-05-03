@@ -36,7 +36,9 @@
            appears (~28-32% down from the container top with rotateX(18deg)). */
         #horizon-layer {
             position: absolute;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 32%;          /* Stops above where tilted canvas appears */
             pointer-events: none;
             z-index: 0;
@@ -124,16 +126,58 @@
             to   { transform: translateX(120%); }
         }
         
-        /* The canvas now lives inside a tilted "world stage" */
+        /* Birds in the horizon - layered for depth */
+        #horizon-layer .bird-flock {
+            position: absolute;
+            animation: bird-fly linear infinite;
+            font-size: 11px;
+            opacity: 0.55;
+            color: #2c3e50;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+            white-space: nowrap;
+            letter-spacing: 4px;
+        }
+        #horizon-layer .bird-single {
+            position: absolute;
+            animation: bird-arc linear infinite;
+            font-size: 14px;
+            opacity: 0.7;
+            color: #34495e;
+        }
+        #horizon-layer .bird-single .wing { display: inline-block; animation: flap 0.6s ease-in-out infinite; }
+        @keyframes bird-fly {
+            from { transform: translateX(-130%) translateY(0); }
+            to   { transform: translateX(130%) translateY(0); }
+        }
+        @keyframes bird-arc {
+            0%   { transform: translateX(-130%) translateY(0); }
+            50%  { transform: translateX(0%) translateY(-12px); }
+            100% { transform: translateX(130%) translateY(0); }
+        }
+        @keyframes flap {
+            0%, 100% { transform: scaleY(1); }
+            50%      { transform: scaleY(0.5); }
+        }
+        
+        /* The canvas now lives inside a tilted "world stage". The stage is
+           overscaled wider than the container so when it tilts in 3D the visible
+           world fills the entire container. */
         #world-stage {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: -12%;
+            width: 124%;
+            height: 100%;
             transform-style: preserve-3d;
             transform: rotateX(18deg) translateZ(0);
             transform-origin: 50% 100%;
             z-index: 1;
         }
-        body.flat-view #world-stage { transform: none; }
+        body.flat-view #world-stage {
+            transform: none;
+            left: 0;
+            width: 100%;
+        }
         body.flat-view #horizon-layer { display: none; }
         
         /* Atmospheric haze - soft white fade at top of canvas to suggest distance */
@@ -479,6 +523,13 @@
                 <div class="far-sail" style="top: 78%; animation-duration: 220s; animation-delay: -30s;"></div>
                 <div class="far-sail" style="top: 82%; animation-duration: 280s; animation-delay: -110s;"></div>
                 <div class="far-sail" style="top: 75%; animation-duration: 250s; animation-delay: -180s;"></div>
+                <!-- Distant pelican V-formation - tiny, slow, way back -->
+                <div class="bird-flock" style="top: 35%; animation-duration: 110s; animation-delay: -25s; transform: scale(0.7);">v v v v v</div>
+                <div class="bird-flock" style="top: 52%; animation-duration: 140s; animation-delay: -90s; transform: scale(0.55); opacity: 0.4;">v v v v</div>
+                <!-- Individual seagulls with wing-flap, closer -->
+                <div class="bird-single" style="top: 28%; animation-duration: 45s; animation-delay: -5s;"><span class="wing">⌒</span></div>
+                <div class="bird-single" style="top: 44%; animation-duration: 60s; animation-delay: -35s;"><span class="wing">⌒</span></div>
+                <div class="bird-single" style="top: 62%; animation-duration: 38s; animation-delay: -22s; font-size:12px; opacity:0.5;"><span class="wing">⌒</span></div>
             </div>
             <svg class="skyline-svg" viewBox="0 0 800 60" preserveAspectRatio="none">
                 <!-- Stylized Sarasota skyline silhouette -->
@@ -581,7 +632,7 @@
                 
                 <hr style="margin:10px 0; border:none; border-top:1px solid #d9c89a;">
                 <label style="display:flex; align-items:center; gap:6px;">
-                    <input type="checkbox" id="t-flat" onchange="document.body.classList.toggle('flat-view', this.checked);">
+                    <input type="checkbox" id="t-flat" onchange="document.body.classList.toggle('flat-view', this.checked); resizeCanvas();">
                     Flat (top-down) view
                 </label>
                 <label style="display:block; margin-top:6px;">
@@ -606,10 +657,12 @@
         const gameOverScreen = document.getElementById('game-over-screen');
         const container = document.getElementById('game-container');
 
-        // Responsive Canvas
+        const worldStage = document.getElementById('world-stage');
+
+        // Responsive Canvas - sized to the world-stage (which may be wider than the container)
         function resizeCanvas() {
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+            canvas.width = worldStage.clientWidth;
+            canvas.height = worldStage.clientHeight;
         }
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
@@ -2243,6 +2296,7 @@
         window.switchShopTab = switchShopTab;
         window.purchaseWildlifeEntry = purchaseWildlifeEntry;
         window.viewWildlife = viewWildlife;
+        window.resizeCanvas = resizeCanvas;
     </script>
 </body>
 </html>
