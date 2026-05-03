@@ -61,29 +61,34 @@
             box-shadow: 0 0 60px 20px rgba(255, 200, 130, 0.4);
         }
         #horizon-layer .skyline { display: none; }
-        /* Skyline sits at the very bottom of the horizon layer - right at the apparent horizon */
+        /* Skyline sits at the bottom of the horizon layer with a soft alpha fade
+           on its lower edge so it blends organically into the water/land instead
+           of cutting with a hard line. Pushed slightly below the layer bottom so
+           the soft mask region overlaps the tilted canvas top edge. */
         #horizon-layer .skyline-svg {
             position: absolute;
             left: -5%; right: -5%;
-            bottom: 0;
+            bottom: -8px;
             width: 110%;
-            height: 60px;
-            opacity: 0.65;
+            height: 50px;
+            opacity: 0.7;
             filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
+            -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.4) 85%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.4) 85%, transparent 100%);
         }
-        /* Soft glow band at the very bottom of the horizon-layer where it
-           meets the tilted canvas - the "horizon haze" */
+        /* Stronger horizon haze right at the seam masks any minor pixel mismatch
+           between the skyline base and the apparent water line. */
         #horizon-layer .horizon-haze {
             position: absolute;
-            left: 0; right: 0;
-            bottom: -10px;
-            height: 30px;
+            left: -5%; right: -5%;
+            bottom: -18px;
+            height: 38px;
             background: linear-gradient(to bottom,
-                rgba(255, 230, 200, 0) 0%,
-                rgba(255, 230, 200, 0.7) 50%,
-                rgba(255, 230, 200, 0) 100%);
+                rgba(255, 220, 180, 0) 0%,
+                rgba(255, 220, 180, 0.85) 50%,
+                rgba(255, 220, 180, 0) 100%);
             pointer-events: none;
-            filter: blur(5px);
+            filter: blur(7px);
             z-index: 2;
         }
         #horizon-layer .clouds {
@@ -140,13 +145,30 @@
             color: #2c3e50;
             text-shadow: 0 1px 0 rgba(255,255,255,0.4);
             white-space: nowrap;
-            letter-spacing: 5px;
             animation-name: bird-fly-lr;
             animation-timing-function: linear;
             animation-iteration-count: infinite;
             will-change: transform;
             z-index: 3; /* Above skyline */
             font-weight: 700;
+        }
+        /* Each individual bird in a flock bobs up and down on its own offset,
+           creating the natural undulating V-formation flight pattern. */
+        #horizon-layer .bird-flock .v {
+            display: inline-block;
+            animation: bird-bob 1.4s ease-in-out infinite;
+            margin: 0 3px;
+            will-change: transform;
+        }
+        #horizon-layer .bird-flock .v:nth-child(1) { animation-delay: 0s; }
+        #horizon-layer .bird-flock .v:nth-child(2) { animation-delay: -0.18s; }
+        #horizon-layer .bird-flock .v:nth-child(3) { animation-delay: -0.36s; }
+        #horizon-layer .bird-flock .v:nth-child(4) { animation-delay: -0.54s; }
+        #horizon-layer .bird-flock .v:nth-child(5) { animation-delay: -0.72s; }
+        #horizon-layer .bird-flock .v:nth-child(6) { animation-delay: -0.90s; }
+        @keyframes bird-bob {
+            0%, 100% { transform: translateY(0); }
+            50%      { transform: translateY(-4px); }
         }
         #horizon-layer .bird-single {
             position: absolute;
@@ -553,10 +575,16 @@
                 <div class="far-sail" style="top: 78%; animation-duration: 220s; animation-delay: -30s;"></div>
                 <div class="far-sail" style="top: 82%; animation-duration: 280s; animation-delay: -110s;"></div>
                 <div class="far-sail" style="top: 75%; animation-duration: 250s; animation-delay: -180s;"></div>
-                <!-- Distant pelican V-formations - gliding across the sky -->
-                <div class="bird-flock" style="top: 38%; animation-duration: 90s; animation-delay: -20s; opacity: 0.55;">v v v v v</div>
-                <div class="bird-flock" style="top: 55%; animation-duration: 120s; animation-delay: -75s; transform-origin: 0 0; font-size: 11px; opacity: 0.42;">v v v v</div>
-                <div class="bird-flock" style="top: 28%; animation-duration: 135s; animation-delay: -100s; animation-name: bird-fly-rl; font-size: 11px; opacity: 0.4;">v v v v v v</div>
+                <!-- Distant pelican V-formations - gliding across the sky with natural bob -->
+                <div class="bird-flock" style="top: 38%; animation-duration: 90s; animation-delay: -20s; opacity: 0.55;">
+                    <span class="v">v</span><span class="v">v</span><span class="v">v</span><span class="v">v</span><span class="v">v</span>
+                </div>
+                <div class="bird-flock" style="top: 55%; animation-duration: 120s; animation-delay: -75s; font-size: 11px; opacity: 0.42;">
+                    <span class="v">v</span><span class="v">v</span><span class="v">v</span><span class="v">v</span>
+                </div>
+                <div class="bird-flock" style="top: 28%; animation-duration: 135s; animation-delay: -100s; animation-name: bird-fly-rl; font-size: 11px; opacity: 0.4;">
+                    <span class="v">v</span><span class="v">v</span><span class="v">v</span><span class="v">v</span><span class="v">v</span><span class="v">v</span>
+                </div>
                 <!-- Individual seagulls with flapping wings (closer, more visible) -->
                 <div class="bird-single" style="top: 32%; animation-duration: 38s; animation-delay: -3s;"><span class="wing">⌒</span></div>
                 <div class="bird-single" style="top: 48%; animation-duration: 52s; animation-delay: -28s; animation-name: bird-arc-rl;"><span class="wing">⌒</span></div>
@@ -2321,7 +2349,90 @@
         loop();
         initTuningPanel();
         
-        // Expose UI handlers to inline onclick handlers
+        // ===== Episodic horizon bird events =====
+        // Spawn occasional flocks/singles to make the bay feel naturally alive.
+        // Each event creates a temporary bird element that removes itself when done.
+        const horizonLayer = document.getElementById('horizon-layer');
+        let horizonEventCount = 0;
+        
+        function spawnHorizonEvent() {
+            if (!horizonLayer) return;
+            horizonEventCount++;
+            const id = 'h-evt-' + horizonEventCount;
+            
+            // Pick a random event type, weighted toward gentle background activity
+            const r = Math.random();
+            let html = '';
+            let durationMs = 0;
+            
+            if (r < 0.35) {
+                // Single seagull
+                const top = 20 + Math.random() * 55;
+                const fontSize = 12 + Math.random() * 6;
+                const dur = 28 + Math.random() * 24; // 28-52s
+                const dir = Math.random() < 0.5 ? 'bird-arc-lr' : 'bird-arc-rl';
+                const opacity = 0.5 + Math.random() * 0.3;
+                html = `<div class="bird-single h-evt-once" id="${id}" style="top:${top}%; font-size:${fontSize}px; opacity:${opacity}; animation:${dir} ${dur}s linear forwards;"><span class="wing">⌒</span></div>`;
+                durationMs = dur * 1000;
+            } else if (r < 0.65) {
+                // Pair flying together
+                const top = 30 + Math.random() * 40;
+                const dur = 35 + Math.random() * 25;
+                const dir = Math.random() < 0.5 ? 'bird-arc-lr' : 'bird-arc-rl';
+                html = `
+                    <div class="bird-single h-evt-once" id="${id}" style="top:${top}%; font-size:14px; opacity:0.7; animation:${dir} ${dur}s linear forwards;"><span class="wing">⌒</span></div>
+                    <div class="bird-single h-evt-once" id="${id}-b" style="top:${top + 3}%; font-size:13px; opacity:0.6; animation:${dir} ${dur}s linear forwards; animation-delay:-${(dur*0.04).toFixed(2)}s;"><span class="wing">⌒</span></div>
+                `;
+                durationMs = dur * 1000 + 200;
+            } else if (r < 0.85) {
+                // V-formation flock (3-7 birds)
+                const top = 25 + Math.random() * 45;
+                const dur = 80 + Math.random() * 60;
+                const dir = Math.random() < 0.5 ? 'bird-fly-lr' : 'bird-fly-rl';
+                const count = 3 + Math.floor(Math.random() * 5);
+                const opacity = 0.4 + Math.random() * 0.3;
+                const fontSize = 10 + Math.random() * 4;
+                let vs = '';
+                for (let i = 0; i < count; i++) vs += '<span class="v">v</span>';
+                html = `<div class="bird-flock h-evt-once" id="${id}" style="top:${top}%; font-size:${fontSize}px; opacity:${opacity}; animation:${dir} ${dur}s linear forwards;">${vs}</div>`;
+                durationMs = dur * 1000;
+            } else {
+                // Big lone osprey, brown, slower
+                const top = 40 + Math.random() * 30;
+                const dur = 60 + Math.random() * 30;
+                const dir = Math.random() < 0.5 ? 'bird-arc-lr' : 'bird-arc-rl';
+                html = `<div class="bird-single h-evt-once" id="${id}" style="top:${top}%; font-size:24px; color:#8b5a2b; opacity:0.7; animation:${dir} ${dur}s linear forwards;"><span class="wing">⌒</span></div>`;
+                durationMs = dur * 1000;
+            }
+            
+            // Append the element(s) to the horizon layer
+            const tmpl = document.createElement('div');
+            tmpl.innerHTML = html;
+            while (tmpl.firstElementChild) {
+                horizonLayer.appendChild(tmpl.firstElementChild);
+            }
+            
+            // Schedule cleanup after the animation finishes
+            setTimeout(() => {
+                document.querySelectorAll('.h-evt-once[id^="' + id + '"]').forEach(el => el.remove());
+            }, durationMs + 500);
+        }
+        
+        function scheduleNextHorizonEvent() {
+            // Random gap between events: 4-14 seconds. Naturalistic — sometimes the
+            // sky is empty for a moment, sometimes a couple things appear close together.
+            const gap = 4000 + Math.random() * 10000;
+            setTimeout(() => {
+                spawnHorizonEvent();
+                scheduleNextHorizonEvent();
+            }, gap);
+        }
+        
+        // Kick off the bird event loop
+        scheduleNextHorizonEvent();
+        // Also fire one near the start so the player sees activity immediately
+        setTimeout(spawnHorizonEvent, 2000);
+        setTimeout(spawnHorizonEvent, 6000);
         window.toggleDebugPanel = toggleDebugPanel;
         window.renderCaptainsLog = renderCaptainsLog;
         window.closeUnlockPopup = closeUnlockPopup;
