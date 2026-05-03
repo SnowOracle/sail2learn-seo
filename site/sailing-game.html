@@ -470,6 +470,49 @@
                     ctx.lineTo(0, -8);
                     ctx.fill();
                     ctx.stroke();
+                } else if (e.type === 'specialboat') {
+                    // Larger themed vessel - a charter/ferry/research boat
+                    let dirAngle = Math.atan2(e.vy, e.vx);
+                    ctx.save();
+                    ctx.rotate(dirAngle);
+                    
+                    // Hull
+                    ctx.fillStyle = e.color;
+                    ctx.beginPath();
+                    ctx.roundRect ? ctx.roundRect(-26, -10, 52, 20, 8) : ctx.rect(-26, -10, 52, 20);
+                    ctx.fill();
+                    ctx.strokeStyle = '#1a365d';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                    
+                    // Cabin/deckhouse
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.roundRect ? ctx.roundRect(-12, -7, 18, 9, 2) : ctx.rect(-12, -7, 18, 9);
+                    ctx.fill();
+                    ctx.stroke();
+                    
+                    // Wake
+                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.beginPath();
+                    ctx.ellipse(-30, 0, 10, 4, 0, 0, Math.PI*2);
+                    ctx.fill();
+                    
+                    ctx.restore();
+                    
+                    // Emoji icon (unrotated, on top)
+                    ctx.font = '16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(e.emoji, 0, -20);
+                    
+                    // Brand label below boat
+                    ctx.font = 'bold 11px Newsreader';
+                    ctx.fillStyle = '#1a365d';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(e.label, 0, 26);
+                    ctx.fillText(e.label, 0, 26);
                 } else if (e.type === 'dolphin') {
                     ctx.rotate(e.angle); // Face forward
                     
@@ -652,7 +695,7 @@
             if (Math.random() < 0.003) { // Star (Boon)
                 entities.push({ type: 'star', x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
             }
-            if (Math.random() < 0.0025) { // Other boat spawning
+            if (Math.random() < 0.003) { // Other boat spawning - increased by 20%
                 let spawnLeft = Math.random() > 0.5;
                 // Spawn near the shoreline
                 let startX = spawnLeft ? getShoreline(camera.y - 100, true) + 40 : getShoreline(camera.y - 100, false) - 40;
@@ -671,6 +714,32 @@
                     lastTackFrame: frameCount
                 });
             }
+            // Special Sarasota Bay vessels (rare cameos)
+            if (Math.random() < 0.0008) {
+                let specialTypes = [
+                    { kind: 'siesta', label: 'Siesta Key Rum', emoji: '🍹', color: '#16a085' },
+                    { kind: 'mote', label: 'Mote Marine Lab', emoji: '🔬', color: '#2980b9' },
+                    { kind: 'ringling', label: 'Ringling Ferry', emoji: '🎪', color: '#c0392b' },
+                    { kind: 'ledbuoy', label: 'Big Pass Pilot', emoji: '⚓', color: '#34495e' }
+                ];
+                let pick = specialTypes[Math.floor(Math.random() * specialTypes.length)];
+                let spawnLeft = Math.random() > 0.5;
+                let startX = spawnLeft ? camera.x - 80 : camera.x + canvas.width + 80;
+                let dirX = spawnLeft ? 1 : -1;
+                entities.push({
+                    type: 'specialboat',
+                    kind: pick.kind,
+                    label: pick.label,
+                    emoji: pick.emoji,
+                    color: pick.color,
+                    x: startX,
+                    y: camera.y + 100 + Math.random() * (canvas.height - 200),
+                    vx: dirX * (0.6 + Math.random() * 0.4),
+                    vy: 0.15 * (Math.random() - 0.5),
+                    active: true,
+                    timer: 0
+                });
+            }
 
             // Update Entities & Collisions
             for (let e of entities) {
@@ -680,6 +749,14 @@
                     e.y += Math.sin(e.angle) * 1.5;
                     // Lives for 80 frames
                     if (e.timer > 80) e.active = false;
+                }
+
+                if (e.type === 'specialboat' && e.active) {
+                    e.timer++;
+                    e.x += e.vx;
+                    e.y += e.vy;
+                    // Despawn when off-screen far enough
+                    if (e.x < camera.x - 200 || e.x > camera.x + canvas.width + 200) e.active = false;
                 }
 
                 if (e.type === 'puff' && e.active) {
@@ -719,7 +796,7 @@
                     let dx = e.x - boat.x;
                     let dy = e.y - boat.y;
                     let dist = Math.sqrt(dx*dx + dy*dy);
-                    let collisionDist = e.type === 'otherboat' ? 30 : (e.type === 'puff' ? 150 : 22);
+                    let collisionDist = e.type === 'otherboat' ? 30 : (e.type === 'specialboat' ? 40 : (e.type === 'puff' ? 150 : 22));
                     
                     if (dist < collisionDist) {
                         if (e.type === 'puff') {
@@ -741,7 +818,7 @@
                                     boat.score += 100;
                                     scoreJuiceTimer = 30;
                                 }
-                            } else if (e.type === 'obstacle' || e.type === 'otherboat') {
+                            } else if (e.type === 'obstacle' || e.type === 'otherboat' || e.type === 'specialboat') {
                                 gameState = 'gameover';
                                 boat.crashed = true;
                                 if (gameOverScreen) gameOverScreen.style.display = 'block';
