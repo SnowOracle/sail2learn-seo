@@ -97,6 +97,8 @@
             border-radius: 60px;
             filter: blur(2px);
             animation: drift linear infinite;
+            will-change: transform;
+            left: 0;
         }
         #horizon-layer .cloud::before,
         #horizon-layer .cloud::after {
@@ -108,8 +110,8 @@
         #horizon-layer .cloud::before { width: 60%; height: 140%; left: 10%; top: -40%; }
         #horizon-layer .cloud::after  { width: 50%; height: 130%; right: 8%; top: -25%; }
         @keyframes drift {
-            from { transform: translateX(-120%); }
-            to   { transform: translateX(120%); }
+            from { transform: translate3d(-120%, 0, 0); }
+            to   { transform: translate3d(120vw, 0, 0); }
         }
         /* Distant tiny sailboats on the horizon */
         #horizon-layer .far-sail {
@@ -120,43 +122,71 @@
             border-bottom: 10px solid rgba(255, 255, 255, 0.8);
             animation: drift-far linear infinite;
             filter: drop-shadow(0 1px 0 rgba(0,0,0,0.2));
+            will-change: transform;
+            left: 0;
         }
         @keyframes drift-far {
-            from { transform: translateX(-120%); }
-            to   { transform: translateX(120%); }
+            from { transform: translate3d(-25vw, 0, 0); }
+            to   { transform: translate3d(110vw, 0, 0); }
         }
         
-        /* Birds in the horizon - layered for depth */
+        /* Birds in the horizon - layered for depth.
+           Using left/right keyframe animation for reliability across all positions.
+           will-change: transform tells the browser to GPU-composite these. */
         #horizon-layer .bird-flock {
             position: absolute;
-            animation: bird-fly linear infinite;
-            font-size: 11px;
-            opacity: 0.55;
+            font-size: 13px;
+            opacity: 0.65;
             color: #2c3e50;
             text-shadow: 0 1px 0 rgba(255,255,255,0.4);
             white-space: nowrap;
-            letter-spacing: 4px;
+            letter-spacing: 5px;
+            animation-name: bird-fly-lr;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            will-change: transform;
+            z-index: 3; /* Above skyline */
+            font-weight: 700;
         }
         #horizon-layer .bird-single {
             position: absolute;
-            animation: bird-arc linear infinite;
-            font-size: 14px;
-            opacity: 0.7;
-            color: #34495e;
+            font-size: 16px;
+            opacity: 0.8;
+            color: #2c3e50;
+            animation-name: bird-arc-lr;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            will-change: transform;
+            text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+            z-index: 3;
         }
-        #horizon-layer .bird-single .wing { display: inline-block; animation: flap 0.6s ease-in-out infinite; }
-        @keyframes bird-fly {
-            from { transform: translateX(-130%) translateY(0); }
-            to   { transform: translateX(130%) translateY(0); }
+        #horizon-layer .bird-single .wing { display: inline-block; animation: flap 0.5s ease-in-out infinite; transform-origin: 50% 100%; }
+        
+        /* Flying-from-left flock: simply slides across the horizon layer */
+        @keyframes bird-fly-lr {
+            from { transform: translate3d(-25vw, 0, 0); }
+            to   { transform: translate3d(110vw, 0, 0); }
         }
-        @keyframes bird-arc {
-            0%   { transform: translateX(-130%) translateY(0); }
-            50%  { transform: translateX(0%) translateY(-12px); }
-            100% { transform: translateX(130%) translateY(0); }
+        /* Right-to-left for variation */
+        @keyframes bird-fly-rl {
+            from { transform: translate3d(110vw, 0, 0); }
+            to   { transform: translate3d(-25vw, 0, 0); }
+        }
+        /* Single bird with a soaring arc */
+        @keyframes bird-arc-lr {
+            0%   { transform: translate3d(-25vw, 0, 0); }
+            45%  { transform: translate3d(40vw, -16px, 0); }
+            55%  { transform: translate3d(50vw, -16px, 0); }
+            100% { transform: translate3d(110vw, 0, 0); }
+        }
+        @keyframes bird-arc-rl {
+            0%   { transform: translate3d(110vw, 0, 0); }
+            50%  { transform: translate3d(40vw, -14px, 0); }
+            100% { transform: translate3d(-25vw, 0, 0); }
         }
         @keyframes flap {
             0%, 100% { transform: scaleY(1); }
-            50%      { transform: scaleY(0.5); }
+            50%      { transform: scaleY(0.4); }
         }
         
         /* The canvas now lives inside a tilted "world stage". The stage is
@@ -523,13 +553,17 @@
                 <div class="far-sail" style="top: 78%; animation-duration: 220s; animation-delay: -30s;"></div>
                 <div class="far-sail" style="top: 82%; animation-duration: 280s; animation-delay: -110s;"></div>
                 <div class="far-sail" style="top: 75%; animation-duration: 250s; animation-delay: -180s;"></div>
-                <!-- Distant pelican V-formation - tiny, slow, way back -->
-                <div class="bird-flock" style="top: 35%; animation-duration: 110s; animation-delay: -25s; transform: scale(0.7);">v v v v v</div>
-                <div class="bird-flock" style="top: 52%; animation-duration: 140s; animation-delay: -90s; transform: scale(0.55); opacity: 0.4;">v v v v</div>
-                <!-- Individual seagulls with wing-flap, closer -->
-                <div class="bird-single" style="top: 28%; animation-duration: 45s; animation-delay: -5s;"><span class="wing">⌒</span></div>
-                <div class="bird-single" style="top: 44%; animation-duration: 60s; animation-delay: -35s;"><span class="wing">⌒</span></div>
-                <div class="bird-single" style="top: 62%; animation-duration: 38s; animation-delay: -22s; font-size:12px; opacity:0.5;"><span class="wing">⌒</span></div>
+                <!-- Distant pelican V-formations - gliding across the sky -->
+                <div class="bird-flock" style="top: 38%; animation-duration: 90s; animation-delay: -20s; opacity: 0.55;">v v v v v</div>
+                <div class="bird-flock" style="top: 55%; animation-duration: 120s; animation-delay: -75s; transform-origin: 0 0; font-size: 11px; opacity: 0.42;">v v v v</div>
+                <div class="bird-flock" style="top: 28%; animation-duration: 135s; animation-delay: -100s; animation-name: bird-fly-rl; font-size: 11px; opacity: 0.4;">v v v v v v</div>
+                <!-- Individual seagulls with flapping wings (closer, more visible) -->
+                <div class="bird-single" style="top: 32%; animation-duration: 38s; animation-delay: -3s;"><span class="wing">⌒</span></div>
+                <div class="bird-single" style="top: 48%; animation-duration: 52s; animation-delay: -28s; animation-name: bird-arc-rl;"><span class="wing">⌒</span></div>
+                <div class="bird-single" style="top: 68%; animation-duration: 32s; animation-delay: -15s; font-size: 13px; opacity: 0.55;"><span class="wing">⌒</span></div>
+                <div class="bird-single" style="top: 22%; animation-duration: 46s; animation-delay: -38s; font-size: 12px; opacity: 0.5;"><span class="wing">⌒</span></div>
+                <!-- Big lone osprey, very rare -->
+                <div class="bird-single" style="top: 60%; animation-duration: 75s; animation-delay: -10s; font-size: 22px; color: #8b5a2b; opacity: 0.65; animation-name: bird-arc-rl;"><span class="wing">⌒</span></div>
             </div>
             <svg class="skyline-svg" viewBox="0 0 800 60" preserveAspectRatio="none">
                 <!-- Stylized Sarasota skyline silhouette -->
