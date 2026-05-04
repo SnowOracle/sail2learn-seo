@@ -1808,6 +1808,152 @@
             }
         }
 
+        // Mini-map: top-down overview of the entire bay in the bottom-right
+        function drawMiniMap() {
+            const SIZE = 180;
+            const PAD = 12;
+            const x0 = canvas.width - SIZE - PAD;
+            const y0 = canvas.height - SIZE - PAD;
+            const sx = SIZE / BAY.bounds.w;
+            const sy = SIZE / BAY.bounds.h;
+            
+            // Convert world (wx, wy) to map (mx, my)
+            const wx = (w) => x0 + (w - BAY.bounds.x) * sx;
+            const wy = (w) => y0 + (w - BAY.bounds.y) * sy;
+            
+            ctx.save();
+            
+            // Frame background (deep water blue)
+            ctx.fillStyle = 'rgba(26, 54, 93, 0.85)';
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 2;
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(x0 - 4, y0 - 4, SIZE + 8, SIZE + 8, 8);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.fillRect(x0 - 4, y0 - 4, SIZE + 8, SIZE + 8);
+                ctx.strokeRect(x0 - 4, y0 - 4, SIZE + 8, SIZE + 8);
+            }
+            
+            // Clip to map area
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x0, y0, SIZE, SIZE);
+            ctx.clip();
+            
+            // Water base
+            ctx.fillStyle = '#3c6e94';
+            ctx.fillRect(x0, y0, SIZE, SIZE);
+            
+            // Zone tints
+            for (let z of BAY.zones) {
+                ctx.fillStyle = z.color;
+                ctx.fillRect(wx(z.bounds.x), wy(z.bounds.y), z.bounds.w * sx, z.bounds.h * sy);
+            }
+            
+            // Land polygons
+            ctx.fillStyle = '#e6c280';
+            ctx.strokeStyle = '#c2a15f';
+            ctx.lineWidth = 0.8;
+            for (let poly of BAY.land) {
+                ctx.beginPath();
+                ctx.moveTo(wx(poly[0].x), wy(poly[0].y));
+                for (let i = 1; i < poly.length; i++) {
+                    ctx.lineTo(wx(poly[i].x), wy(poly[i].y));
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+            
+            // Course gates - tiny green dots
+            for (let e of entities) {
+                if (e.type === 'gate' && e.active && !e.triggered) {
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.beginPath();
+                    ctx.arc(wx(e.x), wy(e.y), 1.8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                if (e.type === 'trader' && e.active) {
+                    ctx.fillStyle = '#f1c40f';
+                    ctx.beginPath();
+                    ctx.arc(wx(e.x), wy(e.y), 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Player boat (white triangle pointing in heading direction)
+            ctx.save();
+            ctx.translate(wx(boat.x), wy(boat.y));
+            ctx.rotate(boat.angle + Math.PI / 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#1a365d';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, -5);
+            ctx.lineTo(-3, 4);
+            ctx.lineTo(3, 4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+            
+            // Wind direction arrow in upper-right of mini-map
+            ctx.save();
+            ctx.translate(x0 + SIZE - 14, y0 + 14);
+            ctx.rotate(windDir);
+            ctx.strokeStyle = '#f1c40f';
+            ctx.fillStyle = '#f1c40f';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-7, 0); ctx.lineTo(7, 0);
+            ctx.moveTo(7, 0); ctx.lineTo(3, -3);
+            ctx.moveTo(7, 0); ctx.lineTo(3, 3);
+            ctx.stroke();
+            ctx.restore();
+            
+            ctx.restore(); // unclip
+            
+            // Title
+            ctx.fillStyle = '#f1c40f';
+            ctx.font = 'bold 10px Newsreader';
+            ctx.textAlign = 'left';
+            ctx.fillText('SARASOTA BAY', x0 + 4, y0 - 6);
+            
+            ctx.restore();
+        }
+        
+        // Current zone label - shows which area of the bay you're in
+        function drawZoneLabel() {
+            let z = getZoneAt(boat.x, boat.y);
+            if (!z) return;
+            ctx.save();
+            ctx.fillStyle = 'rgba(26, 54, 93, 0.85)';
+            ctx.strokeStyle = '#f1c40f';
+            ctx.lineWidth = 1.5;
+            const text = z.name;
+            ctx.font = 'bold 14px Newsreader';
+            const w = ctx.measureText(text).width + 28;
+            const x = canvas.width / 2 - w / 2;
+            const y = 14;
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, 24, 12);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.fillRect(x, y, w, 24);
+                ctx.strokeRect(x, y, w, 24);
+            }
+            ctx.fillStyle = '#f1c40f';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, y + 12);
+            ctx.restore();
+        }
+        
         function drawCompass() {
             ctx.save();
             ctx.translate(canvas.width - 50, 50);
@@ -2871,6 +3017,8 @@
             // Draw Screen UI Space
             drawCompass();
             drawGateIndicators();
+            drawMiniMap();
+            drawZoneLabel();
             
             ctx.save();
             if (scoreJuiceTimer > 0) {
