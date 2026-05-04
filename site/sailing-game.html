@@ -60,11 +60,24 @@
         }
         #horizon-layer .sun {
             position: absolute;
+            /* Position is set dynamically each frame by JS */
             top: 18%; left: 70%;
             width: 56px; height: 56px;
             border-radius: 50%;
             background: radial-gradient(circle, #fff5c2 0%, #ffd569 55%, rgba(255,200,100,0) 75%);
             box-shadow: 0 0 60px 20px rgba(255, 200, 130, 0.4);
+            will-change: left, opacity;
+        }
+        /* Wrapper for skyline panorama - JS slides it horizontally based on
+           player heading so the mainland silhouette appears in its true
+           compass direction. The skyline itself is duplicated 3x inside. */
+        #horizon-layer .skyline-pano {
+            position: absolute;
+            left: 0; right: 0; bottom: -8px;
+            height: 50px;
+            pointer-events: none;
+            overflow: visible;
+            will-change: transform;
         }
         #horizon-layer .skyline { display: none; }
         /* Skyline sits at the bottom of the horizon layer with a soft alpha fade
@@ -647,10 +660,23 @@
                 <!-- Big lone osprey, very rare -->
                 <div class="bird-single" style="top: 60%; animation-duration: 75s; animation-delay: -10s; font-size: 22px; color: #8b5a2b; opacity: 0.65; animation-name: bird-arc-rl;"><span class="wing">⌒</span></div>
             </div>
-            <svg class="skyline-svg" viewBox="0 0 800 60" preserveAspectRatio="none">
-                <!-- Stylized Sarasota skyline silhouette -->
-                <path d="M0,60 L0,40 L25,40 L28,30 L35,30 L38,40 L60,40 L60,28 L80,28 L80,40 L100,40 L100,32 L130,32 L130,38 L160,38 L165,22 L175,22 L180,38 L210,38 L215,15 L225,15 L230,38 L260,38 L260,30 L290,30 L295,18 L310,18 L315,30 L345,30 L345,40 L380,40 L380,12 L390,12 L395,4 L405,4 L410,12 L420,12 L420,40 L455,40 L455,32 L490,32 L495,20 L510,20 L515,32 L555,32 L555,40 L590,40 L590,26 L620,26 L625,16 L640,16 L645,26 L680,26 L680,40 L720,40 L725,30 L760,30 L763,38 L800,38 L800,60 Z" fill="#33526b"/>
-            </svg>
+            <!-- Skyline panorama: 3 copies of the Sarasota silhouette laid
+                 side-by-side. JS slides the parent based on boat heading so
+                 the mainland appears in its true compass direction (E). -->
+            <div class="skyline-pano" id="skyline-pano">
+                <svg class="skyline-svg" viewBox="0 0 800 60" preserveAspectRatio="none"
+                     style="position:absolute; left:-100%; width:100%; height:100%;">
+                    <path d="M0,60 L0,40 L25,40 L28,30 L35,30 L38,40 L60,40 L60,28 L80,28 L80,40 L100,40 L100,32 L130,32 L130,38 L160,38 L165,22 L175,22 L180,38 L210,38 L215,15 L225,15 L230,38 L260,38 L260,30 L290,30 L295,18 L310,18 L315,30 L345,30 L345,40 L380,40 L380,12 L390,12 L395,4 L405,4 L410,12 L420,12 L420,40 L455,40 L455,32 L490,32 L495,20 L510,20 L515,32 L555,32 L555,40 L590,40 L590,26 L620,26 L625,16 L640,16 L645,26 L680,26 L680,40 L720,40 L725,30 L760,30 L763,38 L800,38 L800,60 Z" fill="#33526b"/>
+                </svg>
+                <svg class="skyline-svg" viewBox="0 0 800 60" preserveAspectRatio="none"
+                     style="position:absolute; left:0; width:100%; height:100%;">
+                    <path d="M0,60 L0,40 L25,40 L28,30 L35,30 L38,40 L60,40 L60,28 L80,28 L80,40 L100,40 L100,32 L130,32 L130,38 L160,38 L165,22 L175,22 L180,38 L210,38 L215,15 L225,15 L230,38 L260,38 L260,30 L290,30 L295,18 L310,18 L315,30 L345,30 L345,40 L380,40 L380,12 L390,12 L395,4 L405,4 L410,12 L420,12 L420,40 L455,40 L455,32 L490,32 L495,20 L510,20 L515,32 L555,32 L555,40 L590,40 L590,26 L620,26 L625,16 L640,16 L645,26 L680,26 L680,40 L720,40 L725,30 L760,30 L763,38 L800,38 L800,60 Z" fill="#33526b"/>
+                </svg>
+                <svg class="skyline-svg" viewBox="0 0 800 60" preserveAspectRatio="none"
+                     style="position:absolute; left:100%; width:100%; height:100%;">
+                    <path d="M0,60 L0,40 L25,40 L28,30 L35,30 L38,40 L60,40 L60,28 L80,28 L80,40 L100,40 L100,32 L130,32 L130,38 L160,38 L165,22 L175,22 L180,38 L210,38 L215,15 L225,15 L230,38 L260,38 L260,30 L290,30 L295,18 L310,18 L315,30 L345,30 L345,40 L380,40 L380,12 L390,12 L395,4 L405,4 L410,12 L420,12 L420,40 L455,40 L455,32 L490,32 L495,20 L510,20 L515,32 L555,32 L555,40 L590,40 L590,26 L620,26 L625,16 L640,16 L645,26 L680,26 L680,40 L720,40 L725,30 L760,30 L763,38 L800,38 L800,60 Z" fill="#33526b"/>
+                </svg>
+            </div>
             <div class="horizon-haze"></div>
         </div>
         <div id="world-stage">
@@ -1880,6 +1906,49 @@
             ctx.restore();
         }
 
+        // World-locked horizon panorama: as the boat turns, the sun and
+        // mainland skyline scroll across the screen to match real compass
+        // directions. Sun sits in the SW (typical Sarasota afternoon),
+        // mainland is to the E, open Gulf to the W. Features behind the
+        // player fade out and slide off-screen.
+        const HORIZON = {
+            sunDir:     Math.PI * 0.75,  // SW = afternoon sun
+            mainlandDir: 0,              // E = mainland silhouette
+            FOV: Math.PI                 // 180° horizontal field of view
+        };
+        let _horizonSunEl = null;
+        let _horizonSkyEl = null;
+        function updateHorizon() {
+            if (!_horizonSunEl) _horizonSunEl = document.querySelector('#horizon-layer .sun');
+            if (!_horizonSkyEl) _horizonSkyEl = document.getElementById('skyline-pano');
+            if (!_horizonSunEl || !_horizonSkyEl) return;
+            
+            // Sun: position by angular offset from boat heading
+            let sunDelta = getAngleDiff(HORIZON.sunDir, boat.angle);
+            if (Math.abs(sunDelta) < HORIZON.FOV / 2 + 0.3) {
+                let pct = 50 + (sunDelta / HORIZON.FOV) * 100;
+                _horizonSunEl.style.left = pct.toFixed(2) + '%';
+                // Fade out the sun as it nears the edge of view
+                let edgeT = Math.max(0, 1 - Math.abs(sunDelta) / (HORIZON.FOV / 2));
+                _horizonSunEl.style.opacity = (0.3 + 0.7 * edgeT).toFixed(2);
+            } else {
+                _horizonSunEl.style.opacity = '0';
+            }
+            
+            // Skyline: shift the panorama horizontally so the mainland
+            // appears at its correct compass direction. The pano is 300%
+            // wide and centered, with copies at -100%, 0, +100%.
+            let mlDelta = getAngleDiff(HORIZON.mainlandDir, boat.angle);
+            // shiftPercent maps angular offset to a horizontal translation
+            // measured in viewport widths. shift = -mlDelta/FOV moves the
+            // skyline left when the mainland direction is to the right of
+            // your facing (so it appears properly placed on screen).
+            let shiftVw = (mlDelta / HORIZON.FOV) * 100;
+            // Wrap to the central copy when shift exceeds ±100vw
+            shiftVw = ((shiftVw + 100) % 200) - 100;
+            _horizonSkyEl.style.transform = `translate3d(${shiftVw.toFixed(2)}vw, 0, 0)`;
+        }
+        
         // Mini-map: top-down overview of the entire bay in the bottom-right
         function drawMiniMap() {
             const SIZE = 180;
@@ -3129,6 +3198,7 @@
         function loop() {
             update();
             draw();
+            updateHorizon();
             requestAnimationFrame(loop);
         }
 
