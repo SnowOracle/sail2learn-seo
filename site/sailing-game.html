@@ -228,7 +228,7 @@
             width: 124%;
             height: 100%;
             transform-style: preserve-3d;
-            transform: rotateX(22deg) translateZ(0);
+            transform: rotateX(12deg) translateZ(0);
             transform-origin: 50% 100%;
             z-index: 1;
         }
@@ -665,8 +665,9 @@
                 <h1>Tack the Bay</h1>
                 <p>Sail up the coast of Sarasota!</p>
                 <ul style="text-align: left; font-size: 0.95rem; margin-top: 15px; padding-left: 20px;">
-                    <li>Press <span class="key">Space</span> to <b>Tack</b>.</li>
-                    <li>Avoid <b>Obstacles</b>, <b>Other Boats</b>, and the <b>Shoreline</b>.</li>
+                    <li>Steer with <span class="key">←</span> <span class="key">→</span> arrow keys.</li>
+                    <li>Press <span class="key">Space</span> to <b>Tack</b> across the wind.</li>
+                    <li>Avoid <b>Obstacles</b>, <b>Other Boats</b>, <b>Shoals</b>, and the <b>Shoreline</b>.</li>
                     <li>Catch <b>Stars</b> and sail through dark <b>Wind Gusts</b> for a speed boost.</li>
                     <li>Sail between <b>Red &amp; Green Channel Markers</b> to build your streak and unlock Sarasota lore.</li>
                     <li>Hug the shore (gold zone) for a 1.5x multiplier — but watch the wind!</li>
@@ -757,7 +758,7 @@
                 <label style="display:block; margin-top:6px;">
                     Perspective tilt <span class="val" id="val-tilt">18°</span>
                 </label>
-                <div class="row"><input type="range" id="t-tilt" min="0" max="35" step="1" value="22" oninput="document.getElementById('val-tilt').textContent = this.value+'°'; document.querySelector('#world-stage').style.transform = 'rotateX('+this.value+'deg) translateZ(0)';"></div>
+                <div class="row"><input type="range" id="t-tilt" min="0" max="35" step="1" value="12" oninput="document.getElementById('val-tilt').textContent = this.value+'°'; document.querySelector('#world-stage').style.transform = 'rotateX('+this.value+'deg) translateZ(0)';"></div>
             </div>
         </div>
     </div>
@@ -792,11 +793,11 @@
         let windDir = Math.PI / 2; // Wind blowing straight down
         let targetWindDir = Math.PI / 2;
 
-        let camera = { x: 0, y: 0 };
+        let camera = { x: 1750 - 600, y: 100 - 400 }; // Centered on marina by default
         let boat = {
-            x: 1000,
-            y: 0,
-            angle: -Math.PI / 4,
+            x: 1750,
+            y: 100,
+            angle: -Math.PI / 2,
             tack: 1, // 1 for right tack, -1 for left tack
             color: '#ffffff',
             spin: 0,
@@ -805,7 +806,9 @@
             puffTimer: 0,
             ironsTimer: 0,
             score: 0,
-            crashed: false
+            crashed: false,
+            heading: -Math.PI / 2, // player-desired heading (steered with arrows)
+            vx: 0, vy: 0
         };
 
         let bestScore = localStorage.getItem('sail2learn_best_score') || 0;
@@ -1401,9 +1404,13 @@
 
         function resetGame() {
             boat = {
-                x: 1000, y: 0, angle: -Math.PI / 4, tack: 1, 
+                x: BAY.spawn.x, y: BAY.spawn.y,
+                angle: -Math.PI / 2, // Pointing north (up the bay)
+                tack: 1,
                 color: '#ffffff', spin: 0, jump: 0, slowTimer: 0, puffTimer: 0, ironsTimer: 0, score: 0, crashed: false,
-                coastalScore: 0, recoveryBoost: 0
+                coastalScore: 0, recoveryBoost: 0,
+                heading: -Math.PI / 2, // Player-desired heading (steered by arrow keys)
+                vx: 0, vy: 0          // For smooth omni-directional motion
             };
             windDir = Math.PI / 2;
             targetWindDir = Math.PI / 2;
@@ -1429,89 +1436,158 @@
             startScreen.style.display = 'none';
             if (gameOverScreen) gameOverScreen.style.display = 'none';
             document.getElementById('captains-log').style.display = 'none';
+            
+            // ---- Lay out the bay's permanent navigation course ----
+            // Channel markers along the route: marina -> channel -> open bay
+            // -> bridge -> scenic. Each gate is a wide pair of red/green buoys.
+            const COURSE_GATES = [
+                { x: 1750, y: -300,  w: 280, label: 'Marina exit' },
+                { x: 1750, y: -800,  w: 320 },
+                { x: 1750, y: -1300, w: 380 },
+                { x: 1700, y: -1900, w: 500 },
+                { x: 1600, y: -2500, w: 540, label: 'Bridge approach' },
+                { x: 1700, y: -3050, w: 380 }, // bridge gap (between pylons)
+                { x: 1500, y: -3500, w: 460 },
+                { x: 1400, y: -3900, w: 420, label: 'Scenic dock' }
+            ];
+            for (let i = 0; i < COURSE_GATES.length; i++) {
+                let g = COURSE_GATES[i];
+                let pairId = i + 1;
+                entities.push({
+                    type: 'marker', side: 'red',
+                    x: g.x + g.w, y: g.y, pairId, active: true
+                });
+                entities.push({
+                    type: 'marker', side: 'green',
+                    x: g.x - g.w, y: g.y, pairId, active: true
+                });
+                entities.push({
+                    type: 'gate', x: g.x, y: g.y,
+                    pairId, gateHalfWidth: g.w,
+                    active: true, triggered: false
+                });
+            }
+            
+            // Trader Islands - one in the marina, one in the open bay, one near scenic
+            const TRADERS = [
+                { id: 1, x: 2050, y: 0,     name: "Harbor Trader" },
+                { id: 2, x: 2400, y: -1900, name: "Open Bay Trader" },
+                { id: 3, x: 1100, y: -3650, name: "St. Armands Trader" }
+            ];
+            for (let t of TRADERS) {
+                entities.push({
+                    type: 'trader',
+                    traderId: t.id,
+                    x: t.x, y: t.y,
+                    active: true,
+                    onLeft: t.x < BAY.bounds.w / 2
+                });
+            }
         }
 
+        // AABB intersect test - is this aabb at least partly visible on screen?
+        function aabbVisible(b) {
+            let pad = 80;
+            return !(b.x + b.w < camera.x - pad ||
+                     b.x > camera.x + canvas.width + pad ||
+                     b.y + b.h < camera.y - pad ||
+                     b.y > camera.y + canvas.height + pad);
+        }
+        
         function drawLand() {
-            // Coastal "lift zone" tint - subtle gold band along shores when not in trouble
-            let safeZone = !inIrons && !isLeeBowed;
-            if (safeZone) {
-                ctx.fillStyle = 'rgba(241, 196, 15, 0.08)';
-                let startY = camera.y - 100;
-                let endY = camera.y + canvas.height + 100;
-                let step = 40;
-                // Left zone
+            // ---- 1. Per-zone water-depth tint -----------------------------
+            // Each zone paints its bounding box with a tinted overlay so the
+            // player can read the bay's geography by water color alone.
+            for (let z of BAY.zones) {
+                if (!aabbVisible(z.bounds)) continue;
+                ctx.fillStyle = z.color;
+                ctx.fillRect(z.bounds.x, z.bounds.y, z.bounds.w, z.bounds.h);
+            }
+            
+            // ---- 2. Mangrove patches (soft green-tinted water) -----------
+            for (let m of BAY.mangrovePatches) {
+                if (m.cx + m.r < camera.x - 80 || m.cx - m.r > camera.x + canvas.width + 80) continue;
+                if (m.cy + m.r < camera.y - 80 || m.cy - m.r > camera.y + canvas.height + 80) continue;
+                let g = ctx.createRadialGradient(m.cx, m.cy, 0, m.cx, m.cy, m.r);
+                g.addColorStop(0, 'rgba(60, 100, 75, 0.35)');
+                g.addColorStop(1, 'rgba(60, 100, 75, 0)');
+                ctx.fillStyle = g;
                 ctx.beginPath();
-                for(let y = startY; y <= endY + step; y += step) {
-                    let s = getShoreline(y, true);
-                    ctx.lineTo(s, y);
-                }
-                for(let y = endY + step; y >= startY; y -= step) {
-                    let s = getShoreline(y, true) + 150;
-                    ctx.lineTo(s, y);
-                }
-                ctx.closePath();
-                ctx.fill();
-                // Right zone
-                ctx.beginPath();
-                for(let y = startY; y <= endY + step; y += step) {
-                    let s = getShoreline(y, false);
-                    ctx.lineTo(s, y);
-                }
-                for(let y = endY + step; y >= startY; y -= step) {
-                    let s = getShoreline(y, false) - 150;
-                    ctx.lineTo(s, y);
-                }
-                ctx.closePath();
+                ctx.arc(m.cx, m.cy, m.r, 0, Math.PI * 2);
                 ctx.fill();
             }
             
-            ctx.fillStyle = '#e6c280'; // sand
-            ctx.strokeStyle = '#c2a15f'; // darker shore edge
-            ctx.lineWidth = 6;
-            
-            // Extend land FAR above the camera so it doesn't visually cut off
-            // when the canvas is tilted in 3D. The further-up portion will be
-            // hazed by the atmospheric fade overlay.
-            let startY = camera.y - 4000;
-            let endY = camera.y + canvas.height + 100;
-            let step = 40;
-            
-            // Left landmass - extends way back into the distance
-            ctx.beginPath();
-            ctx.moveTo(camera.x - 800, startY);
-            for(let y = startY; y <= endY + step; y += step) {
-                ctx.lineTo(getShoreline(y, true), y);
+            // ---- 3. Sandbar shoals (warning-yellow translucent) ----------
+            for (let s of BAY.shoals) {
+                if (s.cx + s.r < camera.x - 80 || s.cx - s.r > camera.x + canvas.width + 80) continue;
+                if (s.cy + s.r < camera.y - 80 || s.cy - s.r > camera.y + canvas.height + 80) continue;
+                let g = ctx.createRadialGradient(s.cx, s.cy, s.r * 0.2, s.cx, s.cy, s.r);
+                g.addColorStop(0, 'rgba(232, 215, 165, 0.55)');
+                g.addColorStop(1, 'rgba(232, 215, 165, 0.05)');
+                ctx.fillStyle = g;
+                ctx.beginPath();
+                ctx.arc(s.cx, s.cy, s.r, 0, Math.PI * 2);
+                ctx.fill();
+                // dashed warning ring
+                ctx.strokeStyle = 'rgba(200, 170, 100, 0.55)';
+                ctx.setLineDash([8, 6]);
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+                ctx.setLineDash([]);
             }
-            ctx.lineTo(camera.x - 800, endY + step);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
             
-            // Right landmass
-            ctx.beginPath();
-            ctx.moveTo(camera.x + canvas.width + 800, startY);
-            for(let y = startY; y <= endY + step; y += step) {
-                ctx.lineTo(getShoreline(y, false), y);
+            // ---- 4. Land polygons ---------------------------------------
+            ctx.fillStyle = '#e6c280';      // sand
+            ctx.strokeStyle = '#c2a15f';
+            ctx.lineWidth = 5;
+            for (let poly of BAY.land) {
+                ctx.beginPath();
+                ctx.moveTo(poly[0].x, poly[0].y);
+                for (let i = 1; i < poly.length; i++) {
+                    ctx.lineTo(poly[i].x, poly[i].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
             }
-            ctx.lineTo(camera.x + canvas.width + 800, endY + step);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
             
-            // Distant land mass silhouette - drawn near the TOP of the visible canvas
-            // (which is the "far horizon" after our perspective tilt). Camera Y is the
-            // top of the canvas, so we draw the silhouette right around there.
-            ctx.fillStyle = 'rgba(76, 110, 130, 0.55)';
-            let farY = camera.y + 30; // Just below the top of the canvas
-            ctx.beginPath();
-            ctx.moveTo(camera.x - 300, farY - 100);
-            for (let x = camera.x - 300; x <= camera.x + canvas.width + 300; x += 20) {
-                let h = 18 + Math.sin(x * 0.012) * 9 + Math.sin(x * 0.04) * 4;
-                ctx.lineTo(x, farY - h);
+            // ---- 5. Coastal Hugger gold band (only the safe-side hint) ---
+            // Subtle gold halo on water within ~150px of land, when sailing well.
+            // Implemented as an offset stroke on each land polygon.
+            if (!inIrons && !isLeeBowed) {
+                ctx.strokeStyle = 'rgba(241, 196, 15, 0.18)';
+                ctx.lineWidth = 90;
+                ctx.lineJoin = 'round';
+                for (let poly of BAY.land) {
+                    ctx.beginPath();
+                    ctx.moveTo(poly[0].x, poly[0].y);
+                    for (let i = 1; i < poly.length; i++) {
+                        ctx.lineTo(poly[i].x, poly[i].y);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                ctx.lineWidth = 1;
             }
-            ctx.lineTo(camera.x + canvas.width + 300, farY - 100);
-            ctx.closePath();
-            ctx.fill();
+            
+            // ---- 6. Bridge structure across the bridge zone -------------
+            // A thin horizontal band connecting the pylons - reads as a bridge
+            // arching across the bay. Draw before pylons so pylons sit on top.
+            ctx.fillStyle = 'rgba(80, 90, 100, 0.85)';
+            ctx.fillRect(0, -3160, BAY.bounds.w, 18);
+            ctx.fillStyle = 'rgba(120, 130, 140, 0.5)';
+            ctx.fillRect(0, -3158, BAY.bounds.w, 4);
+            
+            // ---- 7. Bridge pylons (collidable) --------------------------
+            ctx.fillStyle = '#7a7a7a';
+            ctx.strokeStyle = '#3a3a3a';
+            ctx.lineWidth = 2;
+            for (let p of BAY.bridgePylons) {
+                ctx.beginPath();
+                ctx.rect(p.x - 14, p.y - 8, 28, 22);
+                ctx.fill();
+                ctx.stroke();
+            }
         }
         
         // Draws a screen-space fog/haze gradient on top of the world to fade
@@ -1793,27 +1869,40 @@
 
         // Stardew-style off-screen indicator pointing to the next channel marker gate
         function drawGateIndicators() {
-            // Find the nearest upcoming active gate that's above the visible camera area
-            let topOfScreenWorldY = camera.y;
+            // Find the closest off-screen active gate in any direction
             let bestGate = null;
+            let bestDist = Infinity;
             for (let e of entities) {
                 if (e.type !== 'gate' || !e.active || e.triggered) continue;
-                if (e.y >= topOfScreenWorldY) continue; // already on screen or below
-                if (!bestGate || e.y > bestGate.y) bestGate = e; // closest = highest y (least negative offset)
+                let sx = e.x - camera.x;
+                let sy = e.y - camera.y;
+                // Only show indicator if gate is off-screen
+                let onScreen = sx > 0 && sx < canvas.width && sy > 0 && sy < canvas.height;
+                if (onScreen) continue;
+                let d = Math.hypot(e.x - boat.x, e.y - boat.y);
+                if (d < bestDist) { bestDist = d; bestGate = e; }
             }
             if (!bestGate) return;
             
-            // Convert gate world position to screen coordinates
-            let screenX = bestGate.x - camera.x;
-            // Clamp to canvas width with margin so the indicator never falls off-screen sideways
-            let margin = 24;
-            screenX = Math.max(margin, Math.min(canvas.width - margin, screenX));
+            // Project the gate direction to a point on the screen edge
+            let dx = bestGate.x - boat.x;
+            let dy = bestGate.y - boat.y;
+            let theta = Math.atan2(dy, dx);
+            // Find intersection of ray from screen center with screen rect (with margin)
+            let cx = canvas.width / 2;
+            let cy = canvas.height / 2;
+            let margin = 60;
+            let halfW = cx - margin;
+            let halfH = cy - margin;
+            let tx = Math.cos(theta), ty = Math.sin(theta);
+            let scale = Math.min(
+                Math.abs(halfW / (tx || 1e-9)),
+                Math.abs(halfH / (ty || 1e-9))
+            );
+            let screenX = cx + tx * scale;
+            let indicatorY = cy + ty * scale;
             
-            // Vertical position: just below the top edge of the canvas
-            let indicatorY = 130; // below score/best/streak readouts
-            
-            // Distance in world-y units (gate is above boat in world coords; boat.y > gate.y)
-            let distance = Math.floor(boat.y - bestGate.y);
+            let distance = Math.floor(Math.hypot(dx, dy));
             
             // Bobbing animation for that Stardew juiciness
             let bob = Math.sin(Date.now() / 200) * 3;
@@ -2195,6 +2284,23 @@
             // And while the Captain's Log is open
             if (document.getElementById('captains-log').style.display === 'block') return;
             frameCount++;
+            
+            // ---- Arrow-key steering ----
+            // The player aims `boat.heading`. Arrow keys rotate it. The wind
+            // physics later clamps the achievable angle out of the no-go zone.
+            const TURN_RATE = 0.04; // rad / frame
+            if (keysHeld['ArrowLeft']) boat.heading -= TURN_RATE;
+            if (keysHeld['ArrowRight']) boat.heading += TURN_RATE;
+            // Up/Down nudge toward north/south to give players a quick "aim
+            // up the bay" / "aim down the bay" shortcut.
+            if (keysHeld['ArrowUp']) {
+                let t = -Math.PI / 2;
+                boat.heading += getAngleDiff(t, boat.heading) * 0.05;
+            }
+            if (keysHeld['ArrowDown']) {
+                let t = Math.PI / 2;
+                boat.heading += getAngleDiff(t, boat.heading) * 0.05;
+            }
 
             // Wind shift scheduling with preview
             if (frameCount === nextWindShiftFrame) {
@@ -2206,12 +2312,30 @@
                 windShiftPreviewActive = false;
             }
             // Show preview ~2s before shift, only when near a shore
-            let nearShore = (boat.x - getShoreline(boat.y, true) < 220) || (getShoreline(boat.y, false) - boat.x < 220);
+            let nearShore = distToLand(boat.x, boat.y) < 220;
             windShiftPreviewActive = nearShore && (nextWindShiftFrame - frameCount < 120) && (nextWindShiftFrame - frameCount > 0);
             windDir += (targetWindDir - windDir) * 0.02;
 
-            let targetBoatAngle = boat.tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
-            boat.angle += getAngleDiff(targetBoatAngle, boat.angle) * 0.15;
+            // ---- Heading resolution ----
+            // The player aims `boat.heading` with arrow keys (set in handleInput).
+            // But sailing physics says you can't point too close to the wind, so
+            // we clamp the heading away from the no-go zone (~50° either side of
+            // straight-into-wind). The "tack" sign chooses which side to clamp
+            // toward when the requested heading is dead into the wind.
+            const NO_GO = 0.85; // ~49° each side of upwind = ~98° total no-go cone
+            let upwindDir = windDir + Math.PI; // direction the boat would face to point INTO the wind
+            let toUpwind = getAngleDiff(boat.heading, upwindDir);
+            // toUpwind > 0 means heading is on the right side of upwind, < 0 left side
+            let allowedAngle = boat.heading;
+            if (Math.abs(toUpwind) < NO_GO) {
+                // In the no-go zone - clamp to the boundary on the player's tack side
+                let side = boat.tack === 1 ? 1 : -1;
+                allowedAngle = upwindDir + side * NO_GO;
+            } else {
+                // Outside no-go zone: update tack sign to whichever side player is on
+                boat.tack = toUpwind > 0 ? 1 : -1;
+            }
+            boat.angle += getAngleDiff(allowedAngle, boat.angle) * 0.12;
 
             let twa = getTWA(windDir, boat.angle);
             let eff = 1.0;
@@ -2278,25 +2402,56 @@
                 if (boat.spin < 0) boat.spin = 0;
             }
 
-            let baseSpeed = tuning.base; 
-            let speed = baseSpeed * eff;
+            // ---- Per-zone wind/speed scaling ----
+            let currentZone = getZoneAt(boat.x, boat.y);
+            let zoneWindScale = currentZone ? currentZone.windScale : 1.0;
+            
+            let baseSpeed = tuning.base;
+            let speed = baseSpeed * eff * zoneWindScale;
+            let moveX = Math.cos(boat.angle) * speed;
             let moveY = Math.sin(boat.angle) * speed;
-            boat.x += Math.cos(boat.angle) * speed;
-            boat.y += moveY; // Boat actually moves in world coordinates now!
+            
+            // Try to move; if the new position is on land, slide along the
+            // shore by zeroing whichever component lands us on shore.
+            let nx = boat.x + moveX;
+            let ny = boat.y + moveY;
+            if (isWater(nx, ny)) {
+                boat.x = nx; boat.y = ny;
+            } else if (isWater(nx, boat.y)) {
+                boat.x = nx; // Sliding along an east-west shore
+                boat.slowTimer = Math.max(boat.slowTimer, 8);
+            } else if (isWater(boat.x, ny)) {
+                boat.y = ny; // Sliding along a north-south shore
+                boat.slowTimer = Math.max(boat.slowTimer, 8);
+            } else {
+                // Stuck against a corner - apply slow + push toward water
+                boat.slowTimer = Math.max(boat.slowTimer, 20);
+            }
+            
+            // Bridge pylon collision (small AABB around each pylon)
+            for (let p of BAY.bridgePylons) {
+                if (Math.abs(boat.x - p.x) < 18 && Math.abs(boat.y - p.y - 5) < 16) {
+                    // Bounce back gently
+                    boat.x -= moveX * 1.5;
+                    boat.y -= moveY * 1.5;
+                    boat.slowTimer = 30;
+                    floatingTexts.push({text: "OUCH!", x: boat.x, y: boat.y - 30, timer: 50});
+                    break;
+                }
+            }
 
-            // Coastal Hugger zone: 150px from shore, not in trouble
-            let leftEdgeNow = getShoreline(boat.y, true);
-            let rightEdgeNow = getShoreline(boat.y, false);
-            let nearLeftShore = (boat.x - leftEdgeNow) < 150;
-            let nearRightShore = (rightEdgeNow - boat.x) < 150;
-            let inCoastalZone = (nearLeftShore || nearRightShore) && !inIrons && !isLeeBowed && !boat.crashed;
+            // Coastal Hugger zone: within 150px of any shore, sailing well
+            let landDist = distToLand(boat.x, boat.y);
+            let inCoastalZone = (landDist < 150) && !inIrons && !isLeeBowed && !boat.crashed;
             
             // Accumulate score: 3x in puff, +50% in coastal zone
             let scoreMultiplier = boat.puffTimer > 0 ? 3 : 1;
             if (inCoastalZone) scoreMultiplier *= 1.5;
-            let gainedThisFrame = 0;
-            if (moveY < 0) {
-                gainedThisFrame = (-moveY * 0.1) * scoreMultiplier;
+            // Score scales with actual speed achieved this frame, in any
+            // direction. Standing still or scraping shore scores nothing.
+            let actualSpeed = Math.hypot(moveX, moveY);
+            let gainedThisFrame = (actualSpeed * 0.1) * scoreMultiplier;
+            if (boat.slowTimer === 0 && !inIrons) {
                 boat.score += gainedThisFrame;
                 if (inCoastalZone) boat.coastalScore += gainedThisFrame;
             }
@@ -2327,110 +2482,94 @@
                 localStorage.setItem('sail2learn_best_score', bestScore);
             }
 
-            // Camera tracks the boat
+            // Camera follows the boat smoothly in 2D (boat near screen center)
             camera.x = boat.x - canvas.width / 2;
-            camera.y = boat.y - canvas.height * 0.75; // Boat is positioned lower on the screen
+            camera.y = boat.y - canvas.height / 2;
 
-            // Shoreline Collision (Auto-Tack)
-            let leftEdge = getShoreline(boat.y, true) + 20;
-            let rightEdge = getShoreline(boat.y, false) - 20;
-            
-            if (boat.x < leftEdge) {
-                boat.x = leftEdge;
-                boat.tack = 1; 
-                boat.slowTimer = 30; 
-            }
-            if (boat.x > rightEdge) {
-                boat.x = rightEdge;
-                boat.tack = -1; 
-                boat.slowTimer = 30;
-            }
-
-            // Check if Lee-Bowed
+            // Lee-Bowed: shore is on the wind side (downwind side) within range.
+            // True when: a piece of land is within 200px AND its direction from
+            // the boat is roughly aligned with the wind direction.
             isLeeBowed = false;
-            // 250px from edge, and wind is blowing towards that same edge.
-            if (boat.x - leftEdge < 250 && windDir > Math.PI / 2 + 0.1) {
-                isLeeBowed = true;
-            } else if (rightEdge - boat.x < 250 && windDir < Math.PI / 2 - 0.1) {
-                isLeeBowed = true;
+            if (landDist < 200) {
+                // Sample 16 directions, find the angle to the closest land sample
+                let bestDir = 0, bestD = Infinity;
+                for (let i = 0; i < 16; i++) {
+                    let a = (i / 16) * Math.PI * 2;
+                    for (let r = 30; r < 250; r += 40) {
+                        let sx = boat.x + Math.cos(a) * r;
+                        let sy = boat.y + Math.sin(a) * r;
+                        if (isOnLand(sx, sy)) {
+                            if (r < bestD) { bestD = r; bestDir = a; }
+                            break;
+                        }
+                    }
+                }
+                if (bestD < 200) {
+                    // Lee-bowed if land is roughly downwind (the shore is in the
+                    // direction the wind is blowing toward).
+                    let alignment = Math.abs(getAngleDiff(bestDir, windDir));
+                    if (alignment < 0.9) isLeeBowed = true;
+                }
             }
 
-            // Entity Spawning (Spawn just out of view above the camera)
-            if (Math.random() < 0.0055) { // Puff (Wind Gust) - increased spawn rate
-                entities.push({ type: 'puff', x: camera.x + Math.random() * canvas.width, y: camera.y - 150, active: true });
+            // ---- Entity spawning (bay-aware) ----
+            // Entities spawn in a ring around the player in WATER ONLY. The
+            // current zone modulates puff frequency.
+            const zonePuffRate = currentZone ? currentZone.puffRate : 1.0;
+            
+            // Helper: pick a random water point within a ring around the boat
+            function pickSpawnPoint(minR, maxR, maxTries) {
+                for (let i = 0; i < (maxTries || 8); i++) {
+                    let a = Math.random() * Math.PI * 2;
+                    let r = minR + Math.random() * (maxR - minR);
+                    let x = boat.x + Math.cos(a) * r;
+                    let y = boat.y + Math.sin(a) * r;
+                    if (isWater(x, y)) return { x, y };
+                }
+                return null;
             }
             
+            // Wind puffs - spawn rate scaled by zone
+            if (Math.random() < 0.0055 * zonePuffRate) {
+                let p = pickSpawnPoint(220, 420);
+                if (p) entities.push({ type: 'puff', x: p.x, y: p.y, active: true });
+            }
+            
+            // Obstacles - spawn ahead of the boat in its travel direction
             if (obstacleCooldown > 0) {
                 obstacleCooldown--;
-            } else if (!inIrons && !isLeeBowed && Math.random() < 0.015) { // Only spawn obstacles when not struggling
+            } else if (!inIrons && !isLeeBowed && Math.random() < 0.012) {
                 let obstacleIcons = ['🪨', '🪵', '🌿', '🐢', '💻', '💼', '📁', '📱'];
+                let isCluster = Math.random() < 0.4;
+                let count = isCluster ? Math.floor(Math.random() * 3) + 2 : 1;
                 
-                // Decide if it's a cluster or a single obstacle
-                let isCluster = Math.random() < 0.4; // 40% chance to spawn a cluster
-                let count = isCluster ? Math.floor(Math.random() * 3) + 2 : 1; // 1 to 4 obstacles
-                
-                let centerX = camera.x + Math.random() * canvas.width;
-                let centerY = camera.y - 50;
-                
-                for (let i = 0; i < count; i++) {
-                    let icon = obstacleIcons[Math.floor(Math.random() * obstacleIcons.length)];
-                    // Disperse them randomly around the center point (or exactly on center if it's just 1)
-                    let ox = count > 1 ? centerX + (Math.random() - 0.5) * 150 : centerX; 
-                    let oy = count > 1 ? centerY + (Math.random() - 0.5) * 80 : centerY;
-                    entities.push({ type: 'obstacle', icon: icon, x: ox, y: oy, active: true });
+                // Bias spawn toward the boat's heading direction
+                let bias = boat.angle;
+                let aheadX = boat.x + Math.cos(bias) * 380;
+                let aheadY = boat.y + Math.sin(bias) * 380;
+                if (isWater(aheadX, aheadY)) {
+                    for (let i = 0; i < count; i++) {
+                        let icon = obstacleIcons[Math.floor(Math.random() * obstacleIcons.length)];
+                        let ox = count > 1 ? aheadX + (Math.random() - 0.5) * 150 : aheadX;
+                        let oy = count > 1 ? aheadY + (Math.random() - 0.5) * 100 : aheadY;
+                        if (isWater(ox, oy)) {
+                            entities.push({ type: 'obstacle', icon: icon, x: ox, y: oy, active: true });
+                        }
+                    }
+                    obstacleCooldown = count * 40 + 20;
                 }
-                
-                // Set cooldown based on how many spawned to prevent walls
-                obstacleCooldown = count * 40 + 20; 
             }
             
-            if (Math.random() < 0.003) { // Star (Boon)
-                entities.push({ type: 'star', x: camera.x + Math.random() * canvas.width, y: camera.y - 50, active: true });
+            // Stars - random water spawn around the boat
+            if (Math.random() < 0.003) {
+                let p = pickSpawnPoint(200, 380);
+                if (p) entities.push({ type: 'star', x: p.x, y: p.y, active: true });
             }
             
-            // Channel marker pairs: spawn deterministically every 600 world-y units (boat sails -y)
-            // Spawn well ahead of the camera so player has time to strategize and we can show indicators
-            while (boat.y - 1200 < nextMarkerY) {
-                markerPairCounter++;
-                let pairId = markerPairCounter;
-                // Center the gate roughly mid-bay with slight wander
-                let centerX = 1000 + Math.sin(nextMarkerY * 0.003) * 250;
-                let gateHalfWidth = 540; // Tripled (was 180) for a much wider, fairer gate
-                entities.push({
-                    type: 'marker', side: 'red',
-                    x: centerX + gateHalfWidth, y: nextMarkerY,
-                    pairId: pairId, active: true
-                });
-                entities.push({
-                    type: 'marker', side: 'green',
-                    x: centerX - gateHalfWidth, y: nextMarkerY,
-                    pairId: pairId, active: true
-                });
-                entities.push({
-                    type: 'gate', x: centerX, y: nextMarkerY,
-                    pairId: pairId, gateHalfWidth: gateHalfWidth,
-                    active: true, triggered: false
-                });
-                nextMarkerY -= 600;
-            }
+            // Channel markers: a pre-laid course up the bay from marina to scenic
+            // Spawned once at game start (handled below in resetGame extension).
             
-            // Trader Islands: spawn periodically along one of the shores
-            while (boat.y - 1200 < nextTraderY) {
-                traderCounter++;
-                let onLeft = (traderCounter % 2 === 0); // Alternate sides for variety
-                let shoreX = getShoreline(nextTraderY, onLeft);
-                // Plant the island just inside the shore so player can dock without grounding
-                let traderX = onLeft ? shoreX + 90 : shoreX - 90;
-                entities.push({
-                    type: 'trader',
-                    traderId: traderCounter,
-                    x: traderX,
-                    y: nextTraderY,
-                    active: true,
-                    onLeft: onLeft
-                });
-                nextTraderY -= 1400;
-            }
+            // Trader Islands: pre-laid at known positions (also one-time spawn)
             
             // Canvas-layer birds that cross between the horizon and gameplay layers.
             // These spawn far above the camera (so they appear as tiny dots near the
@@ -2495,17 +2634,16 @@
                     });
                 }
             }
-            if (Math.random() < 0.003) { // Other boat spawning - increased by 20%
-                let spawnLeft = Math.random() > 0.5;
-                // Spawn near the shoreline
-                let startX = spawnLeft ? getShoreline(camera.y - 100, true) + 40 : getShoreline(camera.y - 100, false) - 40;
-                let tack = spawnLeft ? 1 : -1;
+            if (Math.random() < 0.003) { // Other boat - spawn off-screen in water
+                let p = pickSpawnPoint(canvas.width * 0.6, canvas.width * 0.9, 12);
+                if (p) {
+                let tack = p.x < boat.x ? 1 : -1;
                 let angle = tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
                 let colors = ['#3498db', '#e74c3c', '#9b59b6', '#2ecc71', '#f39c12'];
                 entities.push({ 
                     type: 'otherboat', 
-                    x: startX, 
-                    y: camera.y - 100 + Math.random() * 50, 
+                    x: p.x, 
+                    y: p.y, 
                     angle: angle,
                     tack: tack,
                     speed: 0.4 + Math.random() * 0.3, 
@@ -2513,6 +2651,7 @@
                     active: true,
                     lastTackFrame: frameCount
                 });
+                }
             }
             // Special Sarasota Bay vessels (rare cameos)
             if (Math.random() < 0.0008) {
@@ -2523,22 +2662,23 @@
                     { kind: 'ledbuoy', label: 'Big Pass Pilot', emoji: '⚓', color: '#34495e' }
                 ];
                 let pick = specialTypes[Math.floor(Math.random() * specialTypes.length)];
-                let spawnLeft = Math.random() > 0.5;
-                let startX = spawnLeft ? camera.x - 80 : camera.x + canvas.width + 80;
-                let dirX = spawnLeft ? 1 : -1;
-                entities.push({
-                    type: 'specialboat',
-                    kind: pick.kind,
-                    label: pick.label,
-                    emoji: pick.emoji,
-                    color: pick.color,
-                    x: startX,
-                    y: camera.y + 100 + Math.random() * (canvas.height - 200),
-                    vx: dirX * (0.6 + Math.random() * 0.4),
-                    vy: 0.15 * (Math.random() - 0.5),
-                    active: true,
-                    timer: 0
-                });
+                let p = pickSpawnPoint(canvas.width * 0.5, canvas.width * 0.8, 12);
+                if (p) {
+                    let dirX = p.x < boat.x ? 1 : -1;
+                    entities.push({
+                        type: 'specialboat',
+                        kind: pick.kind,
+                        label: pick.label,
+                        emoji: pick.emoji,
+                        color: pick.color,
+                        x: p.x,
+                        y: p.y,
+                        vx: dirX * (0.6 + Math.random() * 0.4),
+                        vy: 0.15 * (Math.random() - 0.5),
+                        active: true,
+                        timer: 0
+                    });
+                }
             }
 
             // Update Entities & Collisions
@@ -2580,11 +2720,11 @@
                         e.lastTackFrame = frameCount;
                     }
                     
-                    // NPC Shoreline collision
-                    let eLeftEdge = getShoreline(e.y, true) + 20;
-                    let eRightEdge = getShoreline(e.y, false) - 20;
-                    if (e.x < eLeftEdge && e.tack === -1) { e.tack = 1; e.lastTackFrame = frameCount; }
-                    if (e.x > eRightEdge && e.tack === 1) { e.tack = -1; e.lastTackFrame = frameCount; }
+                    // NPC bay collision: tack away from any nearby land
+                    if (distToLand(e.x, e.y) < 60) {
+                        e.tack *= -1;
+                        e.lastTackFrame = frameCount;
+                    }
 
                     let targetAngle = e.tack === 1 ? -Math.PI / 4 : -3 * Math.PI / 4;
                     e.angle += getAngleDiff(targetAngle, e.angle) * 0.1;
@@ -2597,13 +2737,26 @@
                     else effNPC = tuning.run;
 
                     let moveSpeed = e.speed * effNPC;
-                    e.x += Math.cos(e.angle) * moveSpeed;
-                    e.y += Math.sin(e.angle) * moveSpeed;
+                    let nex = e.x + Math.cos(e.angle) * moveSpeed;
+                    let ney = e.y + Math.sin(e.angle) * moveSpeed;
+                    if (isWater(nex, ney)) {
+                        e.x = nex; e.y = ney;
+                    } else {
+                        // hit land - bounce
+                        e.tack *= -1;
+                    }
+                    
+                    // Despawn far-away NPC boats
+                    if (Math.hypot(e.x - boat.x, e.y - boat.y) > 1500) e.active = false;
                 }
                 
                 if (e.type === 'gate' && e.active && !e.triggered) {
-                    // Trigger when boat crosses the gate's Y line (sailing -y, so passing means boat.y < e.y)
-                    if (boat.y < e.y && Math.abs(boat.x - e.x) < e.gateHalfWidth) {
+                    // Trigger when the boat is between the two markers and
+                    // close to the gate's Y line (works in any approach
+                    // direction now that the bay is free 2D).
+                    let dy = boat.y - e.y;
+                    let dx = boat.x - e.x;
+                    if (Math.abs(dy) < 35 && Math.abs(dx) < e.gateHalfWidth) {
                         e.triggered = true;
                         e.active = false;
                         markerStreak++;
@@ -2613,14 +2766,6 @@
                         if (markerStreak === 3) unlockAchievement('channel_cruiser');
                         if (markerStreak === 5) unlockAchievement('bay_pilot');
                         if (markerStreak === 8) unlockAchievement('harbor_master');
-                    } else if (boat.y < e.y - 40) {
-                        // Missed the gate
-                        e.triggered = true;
-                        e.active = false;
-                        if (markerStreak > 0) {
-                            floatingTexts.push({text: 'streak lost', x: boat.x, y: boat.y - 30, timer: 50});
-                        }
-                        markerStreak = 0;
                     }
                 }
                 
@@ -2679,8 +2824,15 @@
                     }
                 }
             }
-            // Remove entities that fall behind the camera
-            entities = entities.filter(e => e.y < camera.y + canvas.height + 200);
+            // Remove entities (free 2D bay): drop only inactive ones, or
+            // ephemeral entities that drifted far from the player. Keep
+            // permanent navigation furniture (markers, gates, traders).
+            entities = entities.filter(e => {
+                if (!e.active) return false;
+                if (e.type === 'marker' || e.type === 'gate' || e.type === 'trader') return true;
+                let dist = Math.hypot(e.x - boat.x, e.y - boat.y);
+                return dist < 1800;
+            });
         }
 
         function draw() {
@@ -2759,9 +2911,18 @@
             requestAnimationFrame(loop);
         }
 
+        // Track which arrow keys are currently held for continuous steering.
+        const keysHeld = {};
+        
         function handleInput(e) {
-            if (e.type === 'keydown' && e.code !== 'Space') return;
-            if (e.type === 'keydown') e.preventDefault(); 
+            const isKey = e.type === 'keydown';
+            if (isKey) {
+                // Only react to game-relevant keys
+                const code = e.code;
+                if (code !== 'Space' && code !== 'ArrowUp' && code !== 'ArrowDown' &&
+                    code !== 'ArrowLeft' && code !== 'ArrowRight') return;
+                e.preventDefault();
+            }
             
             // Don't restart the game if a modal is open
             if (document.getElementById('captains-log').style.display === 'block') return;
@@ -2778,6 +2939,12 @@
                 e.target.closest('#unlock-popup') ||
                 e.target.closest('#debug-toggle-btn')
             )) return;
+            
+            // Arrow keys steer the heading; tracked in keysHeld and applied per-frame
+            if (isKey && e.code !== 'Space') {
+                keysHeld[e.code] = true;
+                return;
+            }
 
             if (gameState === 'start' || gameState === 'gameover') {
                 resetGame();
@@ -2785,6 +2952,10 @@
                 boat.tack *= -1; 
             }
         }
+        
+        window.addEventListener('keyup', (e) => {
+            keysHeld[e.code] = false;
+        });
 
         window.addEventListener('keydown', handleInput);
         container.addEventListener('mousedown', handleInput);
