@@ -1159,7 +1159,241 @@
             return Math.PI - diff; 
         }
 
-        // Procedural jagged shoreline
+        // ======================================================================
+        // BAY WORLD - Sarasota Bay arcade map
+        // ----------------------------------------------------------------------
+        // The world is a single bounded bay with zones. Coordinates are in
+        // world-pixels; the bay roughly fits in [0..3600] x [-4800..400].
+        // Player starts at the marina (Zone 1) at the south end and sails north.
+        //
+        // Each zone has:
+        //   - bounds:     {x,y,w,h} aabb used for fast lookup
+        //   - depth:      'deep' | 'channel' | 'flats' | 'mangrove' | 'harbor'
+        //   - windScale:  multiplier on wind strength inside the zone
+        //   - puffRate:   spawn-rate multiplier for wind puffs
+        //   - color:      water tint (rendered behind everything)
+        //   - label:      shown on the mini-map
+        //
+        // Land is a list of polygons (CCW). The bay is "everywhere not on land
+        // and inside the world bounds".
+        // ======================================================================
+        const BAY = {
+            bounds: { x: 0, y: -4800, w: 3600, h: 5200 },
+            
+            zones: [
+                {
+                    id: 'marina', name: 'City Island Marina',
+                    bounds: { x: 1500, y: -200, w: 700, h: 600 },
+                    depth: 'harbor',
+                    windScale: 0.45,
+                    puffRate: 0.2,
+                    color: 'rgba(127, 179, 213, 0.18)',
+                    label: 'Marina'
+                },
+                {
+                    id: 'channel', name: 'Inner Channel',
+                    bounds: { x: 1300, y: -1100, w: 1100, h: 900 },
+                    depth: 'channel',
+                    windScale: 0.7,
+                    puffRate: 0.6,
+                    color: 'rgba(70, 130, 180, 0.0)',
+                    label: 'Channel'
+                },
+                {
+                    id: 'open', name: 'Central Bay',
+                    bounds: { x: 600, y: -3000, w: 2400, h: 1900 },
+                    depth: 'deep',
+                    windScale: 1.0,
+                    puffRate: 1.2,
+                    color: 'rgba(40, 90, 150, 0.0)',
+                    label: 'Open Bay'
+                },
+                {
+                    id: 'flats', name: 'Sandbar Shortcut',
+                    bounds: { x: 2500, y: -2400, w: 900, h: 900 },
+                    depth: 'flats',
+                    windScale: 0.85,
+                    puffRate: 0.7,
+                    color: 'rgba(184, 222, 215, 0.45)',
+                    label: 'Flats'
+                },
+                {
+                    id: 'mangrove', name: 'Mangrove Edge',
+                    bounds: { x: 200, y: -2400, w: 600, h: 1400 },
+                    depth: 'mangrove',
+                    windScale: 0.4,
+                    puffRate: 0.25,
+                    color: 'rgba(70, 110, 90, 0.28)',
+                    label: 'Mangroves'
+                },
+                {
+                    id: 'bridge', name: 'Ringling Bridge Pass',
+                    bounds: { x: 1100, y: -3300, w: 1400, h: 350 },
+                    depth: 'channel',
+                    windScale: 1.15,
+                    puffRate: 1.4,
+                    color: 'rgba(60, 80, 110, 0.18)',
+                    label: 'Bridge'
+                },
+                {
+                    id: 'scenic', name: 'St. Armands Waterfront',
+                    bounds: { x: 600, y: -3900, w: 1200, h: 700 },
+                    depth: 'channel',
+                    windScale: 0.75,
+                    puffRate: 0.6,
+                    color: 'rgba(241, 196, 15, 0.06)',
+                    label: 'Scenic'
+                },
+                {
+                    id: 'pass', name: 'Big Pass (Open)',
+                    bounds: { x: 1900, y: -4600, w: 1500, h: 900 },
+                    depth: 'deep',
+                    windScale: 1.4,
+                    puffRate: 1.8,
+                    color: 'rgba(30, 70, 130, 0.05)',
+                    label: 'Open Pass'
+                }
+            ],
+            
+            // Land polygons - CCW. The "bay" is everywhere inside world bounds
+            // and outside these polygons. Big chunky shapes, not realistic.
+            // West side = barrier island (Lido/Longboat). East = mainland.
+            // North end has bridge support pylons. Tiny City Island in middle.
+            land: [
+                // East mainland (jagged east shore)
+                [
+                    { x: 3600, y: 400 }, { x: 3600, y: -4800 },
+                    { x: 3300, y: -4400 }, { x: 3200, y: -3900 },
+                    { x: 3050, y: -3500 }, { x: 3150, y: -3000 },
+                    { x: 3000, y: -2400 }, { x: 3100, y: -1800 },
+                    { x: 2950, y: -1200 }, { x: 3050, y: -600 },
+                    { x: 2900, y: 0 }, { x: 3000, y: 400 }
+                ],
+                // West barrier island (Lido / Longboat) - separates bay from Gulf
+                [
+                    { x: 0, y: 400 }, { x: 100, y: 0 },
+                    { x: 50, y: -600 }, { x: 150, y: -1200 },
+                    { x: 80, y: -1800 }, { x: 200, y: -2400 },
+                    { x: 100, y: -3000 }, { x: 250, y: -3500 },
+                    { x: 200, y: -3900 },
+                    // Notch outward = Big Pass between Lido & Siesta
+                    { x: 600, y: -4100 }, { x: 600, y: -4200 },
+                    { x: 0, y: -4300 }, { x: 0, y: -4800 },
+                    { x: 1900, y: -4800 }, { x: 1900, y: -4500 },
+                    { x: 1700, y: -4300 }, { x: 1700, y: -4100 },
+                    { x: 1500, y: -4000 }, { x: 1500, y: -3700 },
+                    { x: 1700, y: -3500 }, { x: 1500, y: -3200 },
+                    // Seam back to start - this whole polygon traces the
+                    // northwest / Gulf side; it closes around the top
+                    { x: 0, y: -3200 }, { x: 0, y: 400 }
+                ],
+                // City Island marina spit (small island in the middle creating
+                // the marina basin to its east)
+                [
+                    { x: 1300, y: 100 }, { x: 1450, y: -50 },
+                    { x: 1480, y: -200 }, { x: 1300, y: -250 },
+                    { x: 1200, y: -100 }, { x: 1250, y: 50 }
+                ]
+            ],
+            
+            // Mangrove "soft edges" - extra polygons that count as wind-shadow
+            // / slow water but aren't full collision. Drawn separately.
+            mangrovePatches: [
+                { cx: 350, cy: -1700, r: 180 },
+                { cx: 420, cy: -2100, r: 160 },
+                { cx: 320, cy: -2500, r: 200 }
+            ],
+            
+            // Sandbar shoals - shallow water with grounding penalty
+            shoals: [
+                { cx: 2800, cy: -2000, r: 220 },
+                { cx: 3000, cy: -2300, r: 180 },
+                { cx: 2700, cy: -2700, r: 200 }
+            ],
+            
+            // Bridge pylons - hard collision points across the bridge zone
+            bridgePylons: [
+                { x: 1300, y: -3150 }, { x: 1700, y: -3150 },
+                { x: 2100, y: -3150 }, { x: 2400, y: -3150 }
+            ],
+            
+            // Where the player starts (inside the marina)
+            spawn: { x: 1750, y: 100 },
+            
+            // First objective destination (used until missions are wired up)
+            firstObjective: { x: 1750, y: -1500, label: 'Inner Channel' }
+        };
+        
+        // Standard point-in-polygon (ray cast). Polygon is array of {x,y}.
+        function pointInPoly(px, py, poly) {
+            let inside = false;
+            for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                let xi = poly[i].x, yi = poly[i].y;
+                let xj = poly[j].x, yj = poly[j].y;
+                let intersects = ((yi > py) !== (yj > py)) &&
+                    (px < (xj - xi) * (py - yi) / ((yj - yi) || 1e-9) + xi);
+                if (intersects) inside = !inside;
+            }
+            return inside;
+        }
+        
+        // Is the world point on land (any land polygon)?
+        function isOnLand(x, y) {
+            for (let poly of BAY.land) {
+                if (pointInPoly(x, y, poly)) return true;
+            }
+            return false;
+        }
+        
+        // Inside the world bounds at all?
+        function isInWorld(x, y) {
+            const b = BAY.bounds;
+            return x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+        }
+        
+        // Is the world point in navigable water?
+        function isWater(x, y) {
+            return isInWorld(x, y) && !isOnLand(x, y);
+        }
+        
+        // Returns the zone object containing (x,y), or null. Picks the smallest
+        // matching zone if overlap (more specific wins).
+        function getZoneAt(x, y) {
+            let best = null;
+            let bestArea = Infinity;
+            for (let z of BAY.zones) {
+                const b = z.bounds;
+                if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) {
+                    let area = b.w * b.h;
+                    if (area < bestArea) { best = z; bestArea = area; }
+                }
+            }
+            return best;
+        }
+        
+        // Distance from (x,y) to the nearest land edge - rough approximation
+        // by checking against the nearest point on each polygon's edges.
+        function distToLand(x, y) {
+            let best = Infinity;
+            for (let poly of BAY.land) {
+                for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+                    let dx = poly[i].x - poly[j].x;
+                    let dy = poly[i].y - poly[j].y;
+                    let len2 = dx * dx + dy * dy;
+                    let t = len2 > 0 ? Math.max(0, Math.min(1,
+                        ((x - poly[j].x) * dx + (y - poly[j].y) * dy) / len2)) : 0;
+                    let px = poly[j].x + t * dx;
+                    let py = poly[j].y + t * dy;
+                    let d = Math.hypot(x - px, y - py);
+                    if (d < best) best = d;
+                }
+            }
+            return best;
+        }
+        
+        // Procedural jagged shoreline (legacy strip-mode helper, kept for
+        // backwards compatibility with code paths that still reference it
+        // until the bay conversion is complete).
         function getShoreline(y, isLeft) {
             let noise = Math.sin(y * 0.005) * 80 + Math.sin(y * 0.02) * 30 + Math.cos(y * 0.001) * 150;
             return isLeft ? -200 + noise : 2200 + noise; // The bay is roughly 2400px wide
