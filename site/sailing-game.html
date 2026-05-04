@@ -33,7 +33,7 @@
         
         /* The horizon layer sits behind the canvas, in HTML so it stays sharp.
            Heights/positions are tuned to match where the tilted canvas's top edge
-           appears (~28-32% down from the container top with rotateX(18deg)). */
+           appears (~28-36% down from the container top with rotateX(30deg)). */
         #horizon-layer {
             position: absolute;
             top: 0;
@@ -73,8 +73,8 @@
            compass direction. The skyline itself is duplicated 3x inside. */
         #horizon-layer .skyline-pano {
             position: absolute;
-            left: 0; right: 0; bottom: -8px;
-            height: 50px;
+            left: 0; right: 0; bottom: -4px;
+            height: 28px;
             pointer-events: none;
             overflow: visible;
             will-change: transform;
@@ -87,13 +87,15 @@
         #horizon-layer .skyline-svg {
             position: absolute;
             left: -5%; right: -5%;
-            bottom: -8px;
+            bottom: 0;
             width: 110%;
-            height: 50px;
-            opacity: 0.7;
-            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.15));
-            -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.4) 85%, transparent 100%);
-            mask-image: linear-gradient(to bottom, #000 0%, #000 60%, rgba(0,0,0,0.4) 85%, transparent 100%);
+            height: 100%;
+            opacity: 0.52;
+            transform: scaleY(0.72);
+            transform-origin: center bottom;
+            filter: blur(0.35px) drop-shadow(0 1px 1px rgba(0,0,0,0.12));
+            -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,0.35) 88%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 0%, #000 55%, rgba(0,0,0,0.35) 88%, transparent 100%);
         }
         /* Horizon haze right at the seam, color-matched to the cool atmospheric
            blue at the bottom of the horizon gradient so it doesn't introduce
@@ -241,7 +243,7 @@
             width: 124%;
             height: 100%;
             transform-style: preserve-3d;
-            transform: rotateX(12deg) translateZ(0);
+            transform: rotateX(30deg) translateZ(0);
             transform-origin: 50% 100%;
             z-index: 1;
         }
@@ -749,30 +751,30 @@
                     <button onclick="event.stopPropagation(); toggleDebugPanel();">hide</button>
                 </h3>
                 <label>Base Speed <span class="val" id="val-base">1.20</span></label>
-                <div class="row"><input type="range" id="t-base" min="0.6" max="1.6" step="0.05" value="1.0"></div>
+                <div class="row"><input type="range" id="t-base" min="0.6" max="1.6" step="0.05" value="1.20"></div>
                 
-                <label>In Irons <span class="val" id="val-irons">0.18</span></label>
-                <div class="row"><input type="range" id="t-irons" min="0.05" max="0.6" step="0.01" value="0.32"></div>
+                <label>In Irons <span class="val" id="val-irons">0.34</span></label>
+                <div class="row"><input type="range" id="t-irons" min="0.05" max="0.6" step="0.01" value="0.34"></div>
                 
-                <label>Close-Hauled <span class="val" id="val-close">1.20</span></label>
-                <div class="row"><input type="range" id="t-close" min="0.6" max="1.5" step="0.05" value="1.0"></div>
+                <label>Close-Hauled <span class="val" id="val-close">1.10</span></label>
+                <div class="row"><input type="range" id="t-close" min="0.6" max="1.5" step="0.05" value="1.10"></div>
                 
-                <label>Beam Reach (top) <span class="val" id="val-beam">1.90</span></label>
+                <label>Beam Reach (top) <span class="val" id="val-beam">1.45</span></label>
                 <div class="row"><input type="range" id="t-beam" min="0.8" max="2.2" step="0.05" value="1.45"></div>
                 
-                <label>Running <span class="val" id="val-run">1.30</span></label>
+                <label>Running <span class="val" id="val-run">1.15</span></label>
                 <div class="row"><input type="range" id="t-run" min="0.6" max="1.8" step="0.05" value="1.15"></div>
                 
                 <hr style="margin:10px 0; border:none; border-top:1px solid #d9c89a;">
                 
-                <label>Puff Multiplier <span class="val" id="val-puff">2.20</span></label>
-                <div class="row"><input type="range" id="t-puff" min="1.0" max="3.0" step="0.05" value="1.5"></div>
+                <label>Puff Multiplier <span class="val" id="val-puff">1.50</span></label>
+                <div class="row"><input type="range" id="t-puff" min="1.0" max="3.0" step="0.05" value="1.50"></div>
                 
-                <label>Star Jump Multiplier <span class="val" id="val-jump">1.80</span></label>
-                <div class="row"><input type="range" id="t-jump" min="1.0" max="2.5" step="0.05" value="1.3"></div>
+                <label>Star Jump Multiplier <span class="val" id="val-jump">1.30</span></label>
+                <div class="row"><input type="range" id="t-jump" min="1.0" max="2.5" step="0.05" value="1.30"></div>
                 
-                <label>Recovery Multiplier <span class="val" id="val-rec">1.50</span></label>
-                <div class="row"><input type="range" id="t-rec" min="1.0" max="2.0" step="0.05" value="1.25"></div>
+                <label>Recovery Multiplier <span class="val" id="val-rec">1.40</span></label>
+                <div class="row"><input type="range" id="t-rec" min="1.0" max="2.0" step="0.05" value="1.40"></div>
                 
                 <button id="reset-tuning" style="margin-top:10px; width:100%; background:#1a365d; color:#fff; border:none; border-radius:4px; padding:6px; cursor:pointer; font-family:'Newsreader',serif;">Reset to Tightened Defaults</button>
                 
@@ -782,9 +784,9 @@
                     Flat (top-down) view
                 </label>
                 <label style="display:block; margin-top:6px;">
-                    Perspective tilt <span class="val" id="val-tilt">18°</span>
+                    Perspective tilt <span class="val" id="val-tilt">30°</span>
                 </label>
-                <div class="row"><input type="range" id="t-tilt" min="0" max="35" step="1" value="12" oninput="document.getElementById('val-tilt').textContent = this.value+'°'; document.querySelector('#world-stage').style.transform = 'rotateX('+this.value+'deg) translateZ(0)';"></div>
+                <div class="row"><input type="range" id="t-tilt" min="0" max="40" step="1" value="30" oninput="document.getElementById('val-tilt').textContent = this.value+'°'; document.querySelector('#world-stage').style.transform = 'rotateX('+this.value+'deg) translateZ(0)';"></div>
             </div>
         </div>
     </div>
@@ -842,14 +844,14 @@
         // Speed tuning - tightened range so the player feels more in control
         // Top speed reduced, in-irons sped up, multipliers softened
         const DEFAULT_TUNING = {
-            base: 1.0,
-            irons: 0.32,
-            close: 1.0,
+            base: 1.20,
+            irons: 0.34,
+            close: 1.10,
             beam: 1.45,
             run: 1.15,
-            puff: 1.5,
-            jump: 1.3,
-            rec: 1.25
+            puff: 1.50,
+            jump: 1.30,
+            rec: 1.40
         };
         let tuning = Object.assign({}, DEFAULT_TUNING);
         
