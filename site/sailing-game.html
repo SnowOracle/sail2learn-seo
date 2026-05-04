@@ -1808,6 +1808,77 @@
                 }
             }
         }
+        
+        // Sailing-angle guide projected from the boat: a soft red no-go cone
+        // pointing into the wind, and faint green wedges at the best-sailing
+        // (beam-reach) angles. Tells the player which directions are fast,
+        // which are slow, and which are forbidden - without text.
+        function drawSailingGuide() {
+            const NO_GO = 0.85; // matches movement clamp - ~49° each side of upwind
+            const upwindDir = windDir + Math.PI;
+            const RADIUS = 110;
+            
+            ctx.save();
+            ctx.translate(boat.x, boat.y);
+            
+            // ---- No-go zone: red wedge pointing upwind ----
+            let noGoGrad = ctx.createRadialGradient(0, 0, 14, 0, 0, RADIUS);
+            noGoGrad.addColorStop(0, 'rgba(231, 76, 60, 0)');
+            noGoGrad.addColorStop(0.4, 'rgba(231, 76, 60, 0.18)');
+            noGoGrad.addColorStop(1, 'rgba(231, 76, 60, 0.05)');
+            ctx.fillStyle = noGoGrad;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, RADIUS, upwindDir - NO_GO, upwindDir + NO_GO);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Dashed boundary edges of the no-go zone for clarity
+            ctx.strokeStyle = 'rgba(231, 76, 60, 0.55)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([5, 5]);
+            for (let s of [-1, 1]) {
+                let a = upwindDir + s * NO_GO;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a) * 14, Math.sin(a) * 14);
+                ctx.lineTo(Math.cos(a) * RADIUS, Math.sin(a) * RADIUS);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            
+            // ---- Best-sailing wedges: faint green at beam reach (perpendicular to wind) ----
+            // The two beam-reach directions are at upwindDir ± π/2
+            const BEAM_HALF = 0.35; // ~20° wedge each side
+            for (let s of [-1, 1]) {
+                let beamDir = upwindDir + s * (Math.PI / 2);
+                let beamGrad = ctx.createRadialGradient(0, 0, 14, 0, 0, RADIUS);
+                beamGrad.addColorStop(0, 'rgba(46, 204, 113, 0)');
+                beamGrad.addColorStop(0.5, 'rgba(46, 204, 113, 0.16)');
+                beamGrad.addColorStop(1, 'rgba(46, 204, 113, 0.04)');
+                ctx.fillStyle = beamGrad;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, RADIUS, beamDir - BEAM_HALF, beamDir + BEAM_HALF);
+                ctx.closePath();
+                ctx.fill();
+            }
+            
+            // ---- Tiny "wind from" arrow tucked inside the boat radius ----
+            // A small chevron at the upwind edge of the inner ring, showing
+            // unambiguously which side the wind is coming FROM.
+            ctx.fillStyle = 'rgba(231, 76, 60, 0.9)';
+            ctx.save();
+            ctx.rotate(upwindDir);
+            ctx.beginPath();
+            ctx.moveTo(38, 0);
+            ctx.lineTo(30, -5);
+            ctx.lineTo(30, 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            
+            ctx.restore();
+        }
 
         // Mini-map: top-down overview of the entire bay in the bottom-right
         function drawMiniMap() {
@@ -2991,6 +3062,7 @@
             
             drawLand();
             drawWind();
+            drawSailingGuide();
             drawEntities();
             drawBoat();
             
