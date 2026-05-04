@@ -1412,8 +1412,9 @@
                 heading: -Math.PI / 2, // Player-desired heading (steered by arrow keys)
                 vx: 0, vy: 0          // For smooth omni-directional motion
             };
-            windDir = Math.PI / 2;
-            targetWindDir = Math.PI / 2;
+            // Wind blowing from the NNE - boat starts on a beam reach to the WNW
+            windDir = Math.PI * 0.75; // ~135° (south-southwest blowing direction)
+            targetWindDir = Math.PI * 0.75;
             entities = [];
             floatingTexts = [];
             scoreJuiceTimer = 0;
